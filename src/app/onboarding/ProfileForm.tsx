@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { IconCheck, IconShield, IconX } from "@/components/Icons";
+import { MAX_UPLOAD_BYTES as MAX, MAX_UPLOAD_LABEL } from "@/lib/uploadLimits";
 import { saveProfileAction } from "./actions";
 import { QUALIFICATIONS, STATES, type ProfileState } from "./constants";
 
@@ -13,7 +14,6 @@ type Existing = {
 type Values = { phone: string; city: string; state: string; qualification: string; experienceYears: string; idType: "aadhaar" | "pan"; consent: boolean };
 type Errors = Partial<Record<keyof Values | "idDocument" | "cv", string>>;
 
-const MAX = 5 * 1024 * 1024;
 const ID_TYPES = { mimes: ["image/jpeg", "image/png", "application/pdf"], exts: /\.(jpe?g|png|pdf)$/i, label: "JPG, PNG or PDF" };
 const CV_TYPES = { mimes: [] as string[], exts: /\.(pdf|docx?)$/i, label: "PDF, DOC or DOCX" };
 
@@ -22,8 +22,35 @@ function checkFile(file: File | null, kind: typeof ID_TYPES, required: boolean, 
   if (!file) return required ? `Please add your ${label}.` : undefined;
   if (/\.(heic|heif)$/i.test(file.name)) return "iPhone HEIC photos aren’t supported — please share/export the photo as JPG first.";
   if (!kind.exts.test(file.name) && !kind.mimes.includes(file.type)) return `${label[0].toUpperCase()}${label.slice(1)} must be ${kind.label}.`;
-  if (file.size > MAX) return `This file is ${(file.size / 1024 / 1024).toFixed(1)} MB — the limit is 5 MB. Try a smaller photo or scan.`;
+  if (file.size > MAX) return `This file is ${(file.size / 1024 / 1024).toFixed(1)} MB — the limit is ${MAX_UPLOAD_LABEL}. Try a smaller photo or scan.`;
   if (file.size === 0) return "This file is empty.";
+}
+
+/**
+ * Phone photos are often 3–8 MB. Re-encode large JPG/PNG photos as a JPEG of at most 2000 px on the long side,
+ * which keeps ID text sharp and fits the upload limit. Anything else (PDF, failures) is returned unchanged.
+ */
+async function shrinkImage(file: File): Promise<File> {
+  if (!/^image\/(jpeg|png)$/.test(file.type) || file.size <= 1024 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    for (const [edge, quality] of [[2000, 0.85], [1600, 0.75], [1280, 0.7]] as const) {
+      const scale = Math.min(1, edge / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
+      ctx.fillStyle = "#fff"; // transparent PNG areas would otherwise turn black
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", quality));
+      if (blob && blob.size <= MAX) return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+    }
+  } catch {
+    // Fall through: the size check will explain the problem.
+  }
+  return file;
 }
 
 const inputCls = (bad?: boolean) =>
@@ -235,12 +262,16 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
         <FileDrop
           id="idDocument"
           label={v.idType === "pan" ? "PAN card photo" : "Masked Aadhaar photo"}
-          hint="JPG, PNG or PDF · max 5 MB · all text clearly readable"
+          hint={`JPG, PNG or PDF · max ${MAX_UPLOAD_LABEL} (large photos are resized automatically) · all text clearly readable`}
           accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf"
           file={idFile}
           current={keepId}
           error={errors.idDocument}
-          onFile={(f) => { setIdFile(f); setErrors((e) => ({ ...e, idDocument: f ? checkFile(f, ID_TYPES, false, "ID document") : undefined })); }}
+          onFile={async (picked) => {
+            const f = picked ? await shrinkImage(picked) : null;
+            setIdFile(f);
+            setErrors((e) => ({ ...e, idDocument: f ? checkFile(f, ID_TYPES, false, "ID document") : undefined }));
+          }}
         />
       </fieldset>
 
@@ -251,7 +282,7 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
         <FileDrop
           id="cv"
           label="CV / résumé"
-          hint="PDF, DOC or DOCX · max 5 MB"
+          hint={`PDF, DOC or DOCX · max ${MAX_UPLOAD_LABEL}`}
           accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           file={cvFile}
           current={existing?.cvName}

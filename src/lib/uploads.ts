@@ -1,15 +1,14 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { deleteFile, getFile, putFile } from "./store";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "./uploadLimits";
 import type { StoredFile } from "./users";
 
 /**
- * Private document storage for local development: files live under data/uploads (git-ignored,
- * never in /public) and are only served through the admin-only document route.
- * Swap for private object storage (e.g. S3 with encryption) before deploying.
+ * Private document storage (ID proofs, CVs): Postgres in production, data/uploads locally (git-ignored,
+ * never in /public). Files are only ever served through the admin-only document route.
  */
-const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export { MAX_UPLOAD_BYTES };
+const fileKey = (userId: string, stored: string) => `${userId}/${stored}`;
 
 type Kind = { ext: string; mime: string };
 const KINDS: Record<string, Kind> = {
@@ -36,7 +35,7 @@ export type UploadResult = { file: StoredFile } | { error: string };
 
 export async function saveUpload(userId: string, prefix: string, file: File | null, allowed: (keyof typeof KINDS)[], label: string): Promise<UploadResult> {
   if (!file || file.size === 0) return { error: `Upload your ${label}.` };
-  if (file.size > MAX_UPLOAD_BYTES) return { error: `${label[0].toUpperCase()}${label.slice(1)} must be 5 MB or smaller.` };
+  if (file.size > MAX_UPLOAD_BYTES) return { error: `${label[0].toUpperCase()}${label.slice(1)} must be ${MAX_UPLOAD_LABEL} or smaller.` };
 
   const buf = Buffer.from(await file.arrayBuffer());
   const kind = sniff(buf, file.name);
@@ -44,10 +43,8 @@ export async function saveUpload(userId: string, prefix: string, file: File | nu
     return { error: `${label[0].toUpperCase()}${label.slice(1)} must be ${allowed.map((a) => a.toUpperCase()).join(", ")}.` };
   }
 
-  const dir = path.join(UPLOAD_DIR, userId);
-  await mkdir(dir, { recursive: true });
   const stored = `${prefix}-${randomBytes(12).toString("hex")}.${kind.ext}`;
-  await writeFile(path.join(dir, stored), buf, { mode: 0o600 });
+  await putFile(fileKey(userId, stored), buf, kind.mime);
   return {
     file: {
       stored,
@@ -64,14 +61,10 @@ const SAFE_USER = /^[a-f0-9-]{36}$/;
 
 export async function readUpload(userId: string, file: StoredFile) {
   if (!SAFE_USER.test(userId) || !SAFE_NAME.test(file.stored)) return null;
-  try {
-    return await readFile(path.join(UPLOAD_DIR, userId, file.stored));
-  } catch {
-    return null;
-  }
+  return getFile(fileKey(userId, file.stored));
 }
 
 export async function deleteUpload(userId: string, file?: StoredFile) {
   if (!file || !SAFE_USER.test(userId) || !SAFE_NAME.test(file.stored)) return;
-  await rm(path.join(UPLOAD_DIR, userId, file.stored), { force: true });
+  await deleteFile(fileKey(userId, file.stored));
 }

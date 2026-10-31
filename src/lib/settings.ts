@@ -1,19 +1,13 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { cache } from "react";
 import { DEFAULT_SETTINGS, type SiteSettings } from "./siteSettings";
+import { getJson, setJson } from "./store";
 
-/** File-backed settings for local development. */
-const FILE = path.join(process.cwd(), "data", "settings.json");
+/** Site & certificate settings (Postgres in production, data/settings.json locally — see ./store). */
+const KEY = "settings";
 
 /** Values exactly as saved by an admin (no environment fallbacks). */
 export async function readStoredSettings(): Promise<SiteSettings> {
-  try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(await readFile(FILE, "utf8")) };
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return { ...DEFAULT_SETTINGS };
-    throw e;
-  }
+  return { ...DEFAULT_SETTINGS, ...(await getJson<Partial<SiteSettings>>(KEY)) };
 }
 
 /** Saved settings, with the site URL falling back to the APP_URL environment variable. */
@@ -23,6 +17,5 @@ export const getSettings = cache(async (): Promise<SiteSettings> => {
 });
 
 export async function saveSettings(next: SiteSettings) {
-  await mkdir(path.dirname(FILE), { recursive: true });
-  await writeFile(FILE, JSON.stringify(next, null, 2));
+  await setJson(KEY, next);
 }

@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { getJson, setJson, withLock } from "./store";
 
-/** File-backed enquiry store for local development. Swap for a database before deploying. */
-const FILE = path.join(process.cwd(), "data", "enquiries.json");
+/** Course enquiries, stored as one document (Postgres in production, data/enquiries.json locally — see ./store). */
+const KEY = "enquiries";
 
 import type { EnquiryStatus } from "./enquiryOptions";
 
@@ -27,17 +26,11 @@ export type Enquiry = {
 };
 
 async function readAll(): Promise<Enquiry[]> {
-  try {
-    return JSON.parse(await readFile(FILE, "utf8"));
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw e;
-  }
+  return (await getJson<Enquiry[]>(KEY)) ?? [];
 }
 
 async function writeAll(list: Enquiry[]) {
-  await mkdir(path.dirname(FILE), { recursive: true });
-  await writeFile(FILE, JSON.stringify(list, null, 2));
+  await setJson(KEY, list);
 }
 
 export async function listEnquiries() {
@@ -51,20 +44,24 @@ export async function recentFromPhone(phone: string) {
 }
 
 export async function addEnquiry(input: Omit<Enquiry, "id" | "createdAt" | "status">) {
-  const list = await readAll();
-  const enquiry: Enquiry = { ...input, id: randomUUID(), createdAt: new Date().toISOString(), status: "new" };
-  await writeAll([...list, enquiry]);
-  return enquiry;
+  return withLock(KEY, async () => {
+    const list = await readAll();
+    const enquiry: Enquiry = { ...input, id: randomUUID(), createdAt: new Date().toISOString(), status: "new" };
+    await writeAll([...list, enquiry]);
+    return enquiry;
+  });
 }
 
 export async function updateEnquiry(id: string, patch: { status: EnquiryStatus; adminNote?: string }) {
-  const list = await readAll();
-  const e = list.find((x) => x.id === id);
-  if (!e) return null;
-  e.status = patch.status;
-  if (patch.adminNote) e.adminNote = patch.adminNote;
-  else delete e.adminNote;
-  e.updatedAt = new Date().toISOString();
-  await writeAll(list);
-  return e;
+  return withLock(KEY, async () => {
+    const list = await readAll();
+    const e = list.find((x) => x.id === id);
+    if (!e) return null;
+    e.status = patch.status;
+    if (patch.adminNote) e.adminNote = patch.adminNote;
+    else delete e.adminNote;
+    e.updatedAt = new Date().toISOString();
+    await writeAll(list);
+    return e;
+  });
 }

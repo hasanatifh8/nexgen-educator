@@ -1,13 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { cache } from "react";
 import { SEED_CATALOG, type Block, type Catalog, type Course, type Exam, type Module, type Program } from "./catalog";
 import { EMPTY_CONTENT, SEED_CONTENT } from "./seedContent";
 import { INTRO_AI_COURSE, INTRO_AI_PROGRAM } from "./seed/introAiCourse";
+import { getJson, setJson } from "./store";
 
-/** File-backed catalog for local development. Swap for a database before deploying. */
-const CATALOG_FILE = path.join(process.cwd(), "data", "catalog.json");
+/** Programs and courses, stored as one document (Postgres in production, data/catalog.json locally — see ./store). */
+const CATALOG_KEY = "catalog";
 
 /** Fills in course-content fields for seed data and for catalog files written before content existed. */
 function withContent(c: Partial<Course> & Pick<Course, "id">): Course {
@@ -22,24 +21,19 @@ function withContent(c: Partial<Course> & Pick<Course, "id">): Course {
 }
 
 async function readCatalog(): Promise<Catalog> {
-  try {
-    const raw = JSON.parse(await readFile(CATALOG_FILE, "utf8")) as Catalog;
-    return { programs: raw.programs, courses: raw.courses.map(withContent) };
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
-    // The free intro course leads the catalog as the featured starting point.
-    const seeded: Catalog = {
-      programs: [structuredClone(INTRO_AI_PROGRAM), ...structuredClone(SEED_CATALOG.programs)],
-      courses: [structuredClone(INTRO_AI_COURSE), ...SEED_CATALOG.courses.map(withContent)],
-    };
-    await writeCatalog(seeded);
-    return seeded;
-  }
+  const raw = await getJson<Catalog>(CATALOG_KEY);
+  if (raw) return { programs: raw.programs, courses: raw.courses.map(withContent) };
+  // The free intro course leads the catalog as the featured starting point.
+  const seeded: Catalog = {
+    programs: [structuredClone(INTRO_AI_PROGRAM), ...structuredClone(SEED_CATALOG.programs)],
+    courses: [structuredClone(INTRO_AI_COURSE), ...SEED_CATALOG.courses.map(withContent)],
+  };
+  await writeCatalog(seeded);
+  return seeded;
 }
 
 async function writeCatalog(catalog: Catalog) {
-  await mkdir(path.dirname(CATALOG_FILE), { recursive: true });
-  await writeFile(CATALOG_FILE, JSON.stringify(catalog, null, 2));
+  await setJson(CATALOG_KEY, catalog);
 }
 
 /** Memoized per request. */

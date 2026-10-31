@@ -1,16 +1,11 @@
 import { createHash, randomBytes, randomUUID, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { promisify } from "node:util";
+import { getJson, setJson, withLock } from "./store";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: string, keylen: number) => Promise<Buffer>;
 
-/**
- * Minimal file-backed user store for local development.
- * Swap for a real database before deploying (serverless hosts have read-only filesystems).
- */
-const DATA_DIR = path.join(process.cwd(), "data");
-const USERS_FILE = path.join(DATA_DIR, "users.json");
+/** User accounts, stored as one document (Postgres in production, data/users.json locally — see ./store). */
+const USERS_KEY = "users";
 
 export type StoredUser = {
   id: string;
@@ -81,46 +76,34 @@ export type EarnedCertificate = {
 };
 
 async function readUsers(): Promise<StoredUser[]> {
-  try {
-    const raw = JSON.parse(await readFile(USERS_FILE, "utf8")) as Partial<StoredUser>[];
-    // Backfill fields added after early accounts were created.
-    return raw.map(
-      (u) =>
-        ({
-          plan: "free",
-          purchases: [],
-          certificates: [],
-          progress: {},
-          verification: { status: "pending" },
-          assignedCourses: [],
-          requests: [],
-          examAttempts: [],
-          ...u,
-        }) as StoredUser,
-    );
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw e;
-  }
+  const raw = (await getJson<Partial<StoredUser>[]>(USERS_KEY)) ?? [];
+  // Backfill fields added after early accounts were created.
+  return raw.map(
+    (u) =>
+      ({
+        plan: "free",
+        purchases: [],
+        certificates: [],
+        progress: {},
+        verification: { status: "pending" },
+        assignedCourses: [],
+        requests: [],
+        examAttempts: [],
+        ...u,
+      }) as StoredUser,
+  );
 }
 
-/** Write to a temp file and rename, so a crash mid-write can never leave a truncated users.json. */
 async function writeUsers(users: StoredUser[]) {
-  await mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${USERS_FILE}.${randomBytes(6).toString("hex")}.tmp`;
-  await writeFile(tmp, JSON.stringify(users, null, 2));
-  await rename(tmp, USERS_FILE);
+  await setJson(USERS_KEY, users);
 }
 
 /**
- * Serialises read-modify-write cycles within this server process. Without it, two concurrent requests
- * (e.g. a lesson completion and a certificate issue) both read the old file and the last write wins.
+ * Serialises read-modify-write cycles. Without it, two concurrent requests (e.g. a lesson completion and a
+ * certificate issue) both read the old list and the last write wins. Holds across serverless instances.
  */
-let writeQueue: Promise<unknown> = Promise.resolve();
 function withUsersLock<T>(fn: (users: StoredUser[]) => Promise<T>): Promise<T> {
-  const run = writeQueue.then(async () => fn(await readUsers()));
-  writeQueue = run.catch(() => undefined);
-  return run;
+  return withLock(USERS_KEY, async () => fn(await readUsers()));
 }
 
 export async function listUsers() {
