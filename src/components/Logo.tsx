@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type LogoProps = { light?: boolean; className?: string };
 
 /** Graduation cap fused with a digital circuit motif. */
@@ -26,7 +28,7 @@ export function LogoMark({ className = "h-9 w-9" }: { className?: string }) {
 
 export default function Logo({ light = false, className = "" }: LogoProps) {
   return (
-    <a href="#" className={`flex items-center gap-2.5 ${className}`} aria-label="NextGen Educator home">
+    <Link href="/" className={`flex items-center gap-2.5 ${className}`} aria-label="NextGen Educator home">
       <LogoMark />
       <span className="flex flex-col leading-none">
         <span className={`font-display text-lg font-bold tracking-tight ${light ? "text-white" : "text-navy-900"}`}>
@@ -36,6 +38,6 @@ export default function Logo({ light = false, className = "" }: LogoProps) {
           Train. Test. Certify.
         </span>
       </span>
-    </a>
+    </Link>
   );
 }

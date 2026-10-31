@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { IconArrowRight, IconBuilding, IconCheck } from "./Icons";
 
 const benefits = [
@@ -25,7 +26,7 @@ export default function Institutions() {
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#" className="btn-primary px-6 py-3">Request a Demo <IconArrowRight className="h-4 w-4" /></a>
-                <a href="#pricing" className="btn-ghost-dark px-6 py-3">See Institution Plans</a>
+                <Link href="/courses" className="btn-ghost-dark px-6 py-3">Browse courses</Link>
               </div>
             </div>
             <ul className="grid gap-4 sm:grid-cols-2">

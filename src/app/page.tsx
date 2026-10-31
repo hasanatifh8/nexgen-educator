@@ -1,23 +1,37 @@
-import Navbar from "@/components/Navbar";
+import { Suspense } from "react";
+import SiteHeader from "@/components/SiteHeader";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
-import ExamEngine from "@/components/ExamEngine";
-import CourseCatalog from "@/components/CourseCatalog";
 import Institutions from "@/components/Institutions";
-import Pricing from "@/components/Pricing";
 import Footer from "@/components/Footer";
+import HowItWorks from "@/components/home/HowItWorks";
+import Faq from "@/components/home/Faq";
+import CareerOutcomes from "@/components/home/CareerOutcomes";
+import { HomeCredentials, HomeExamEngine, HomeExplorer, HomeFinder, SectionSkeleton } from "@/components/home/HomeCatalog";
 
 export default function Home() {
   return (
     <>
-      <Navbar />
+      <SiteHeader />
       <main className="flex-1">
         <Hero />
+        <CareerOutcomes />
+        <Suspense fallback={<SectionSkeleton />}>
+          <HomeCredentials />
+        </Suspense>
+        <Suspense fallback={<SectionSkeleton />}>
+          <HomeExplorer />
+        </Suspense>
+        <HowItWorks />
+        <Suspense fallback={<SectionSkeleton dark />}>
+          <HomeFinder />
+        </Suspense>
         <Features />
-        <ExamEngine />
-        <CourseCatalog />
+        <Suspense fallback={<SectionSkeleton />}>
+          <HomeExamEngine />
+        </Suspense>
         <Institutions />
-        <Pricing />
+        <Faq />
       </main>
       <Footer />
     </>

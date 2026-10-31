@@ -13,6 +13,16 @@
   --color-accent: #f97316;
   --color-accent-dark: #ea580c;
 
+  /*
+   * Accessible shades of the same brand hues (WCAG AA, 4.5:1 for normal text).
+   * brand / brand-teal / accent stay the fills for gradients, bars and icons on dark surfaces;
+   * use the *-ink / *-strong shades for text and for CTA fills that carry white text.
+   *   brand-ink on white 5.37:1 · on sky-50 5.03:1      accent-strong + white text 4.70:1
+   */
+  --color-brand-ink: #0670ab;
+  --color-accent-strong: #c94a0c;
+  --color-accent-deep: #b4400a;
+
   --shadow-card: 0 1px 2px rgb(15 42 74 / 0.04), 0 4px 16px rgb(15 42 74 / 0.06);
   --shadow-card-hover: 0 2px 4px rgb(15 42 74 / 0.06), 0 16px 40px rgb(15 42 74 / 0.12);
 }
@@ -30,10 +40,10 @@ body {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primary {
-  @apply btn bg-accent text-white shadow-md shadow-orange-500/20 hover:-translate-y-0.5 hover:bg-accent-dark hover:shadow-lg hover:shadow-orange-500/30;
+  @apply btn bg-gradient-to-b from-accent-strong to-accent-deep text-white shadow-md shadow-orange-600/25 ring-1 ring-orange-700/20 ring-inset hover:-translate-y-0.5 hover:from-accent-deep hover:to-accent-deep hover:shadow-lg hover:shadow-orange-600/30 motion-reduce:hover:translate-y-0;
 }
 @utility btn-secondary {
-  @apply btn border border-slate-200 bg-white text-navy-900 hover:border-brand hover:text-brand;
+  @apply btn border border-slate-300 bg-white text-navy-900 hover:border-brand-ink hover:text-brand-ink;
 }
 @utility btn-ghost-dark {
   @apply btn border border-white/20 bg-white/5 text-white backdrop-blur hover:border-brand-teal hover:bg-white/10;
@@ -45,10 +55,32 @@ body {
   @apply hover:-translate-y-1 hover:shadow-card-hover;
 }
 @utility eyebrow {
-  @apply inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold tracking-wide text-brand uppercase ring-1 ring-sky-100;
+  @apply inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold tracking-wide text-brand-ink uppercase ring-1 ring-sky-100;
 }
 @utility section-title {
-  @apply font-display text-3xl font-bold tracking-tight text-navy-900 sm:text-4xl;
+  @apply font-display text-3xl font-bold tracking-tight text-balance text-navy-900 sm:text-4xl;
+}
+@utility section-lede {
+  @apply mt-4 text-lg leading-relaxed text-pretty text-slate-600;
+}
+/* Editorial pull-quote used for career-outcome callouts. */
+@utility pull-quote {
+  @apply relative border-l-4 border-accent pl-6 font-display text-xl leading-snug font-semibold text-balance text-navy-900 sm:text-2xl;
+}
+
+/* Visible keyboard focus everywhere, not only on .btn. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .bg-grid {
@@ -65,3 +97,18 @@ body {
 .animate-fade-up {
   animation: fade-up 0.4s ease-out both;
 }
+
+/* Hero composition: gentle float for layered cards, and a scanner sweep on the phone mock. */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-float-slow { animation: float 8s ease-in-out 1.2s infinite; }
+
+@keyframes scan {
+  0% { top: 8%; opacity: 0; }
+  15%, 85% { opacity: 1; }
+  100% { top: 88%; opacity: 0; }
+}
+.animate-scan { animation: scan 2.8s ease-in-out infinite; }

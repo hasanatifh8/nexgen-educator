@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { downloadCertificatePdf } from "@/lib/certificatePdf";
-import { makeCredentialId, mockQrMatrix } from "@/lib/mockQr";
-import { IconArrowRight, IconBadge, IconCheck, IconDownload, IconRefresh, IconShield, IconTimer, IconX } from "./Icons";
+import { DEFAULT_SETTINGS, type SiteSettings } from "@/lib/siteSettings";
+import Certificate from "./Certificate";
+import { formatCertDate } from "@/lib/certificate/design";
+import CertificateDownload from "./CertificateDownload";
+import { IconArrowRight, IconBadge, IconCheck, IconRefresh, IconShield, IconTimer, IconX } from "./Icons";
 
 const EXAM_SECONDS = 5 * 60;
 const PASS_MARK = 2;
@@ -58,7 +60,10 @@ function formatTime(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export default function ExamEngine() {
+/** Sample IDs start with SAMPLE- so the verification page can explain they aren't real credentials. */
+const sampleId = () => `SAMPLE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+export default function ExamEngine({ settings = DEFAULT_SETTINGS }: { settings?: SiteSettings }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [name, setName] = useState("");
   const [current, setCurrent] = useState(0);
@@ -68,13 +73,12 @@ export default function ExamEngine() {
   const [credentialId, setCredentialId] = useState("");
   const [issuedOn, setIssuedOn] = useState("");
   const [timedOut, setTimedOut] = useState(false);
-  const [downloading, setDownloading] = useState(false);
 
   const submit = useCallback((auto = false) => {
     setNow(Date.now());
     setTimedOut(auto);
-    setCredentialId(makeCredentialId());
-    setIssuedOn(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }));
+    setCredentialId(sampleId());
+    setIssuedOn(formatCertDate(new Date()));
     setPhase("results");
   }, []);
 
@@ -111,6 +115,15 @@ export default function ExamEngine() {
   const answeredCount = answers.filter((a) => a !== null).length;
   const lowTime = secondsLeft <= 60;
   const displayName = name.trim() || "Guest Educator";
+  const certData = {
+    name: displayName,
+    title: passed ? EXAM_TITLE : "Diagnostic Participation",
+    score,
+    total: QUESTIONS.length,
+    credentialId,
+    issuedOn,
+    sample: true,
+  };
 
   return (
     <section id="practice-tests" className="py-20 lg:py-28">
@@ -131,7 +144,7 @@ export default function ExamEngine() {
               const I = Icon as typeof IconTimer;
               return (
                 <li key={title as string} className="flex gap-4">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-50 text-brand ring-1 ring-sky-100">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-50 text-brand-ink ring-1 ring-sky-100">
                     <I className="h-5 w-5" />
                   </span>
                   <div>
@@ -154,7 +167,7 @@ export default function ExamEngine() {
               <span className="ml-3 hidden text-xs font-medium text-slate-500 sm:inline">exam.nextgeneducator — {EXAM_TITLE}</span>
             </div>
             <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-              <IconShield className="h-4 w-4" /> Secure mode
+              <IconShield className="h-4 w-4" /> Practice mode
             </span>
           </div>
 
@@ -177,7 +190,7 @@ export default function ExamEngine() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={40}
-                placeholder="e.g. Jordan Rivera"
+                placeholder="e.g. Priya Sharma"
                 className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-navy-900 outline-none transition focus:border-brand focus:ring-4 focus:ring-sky-100"
               />
               <button onClick={start} className="btn-primary mt-6 w-full py-3.5 text-base">
@@ -201,7 +214,7 @@ export default function ExamEngine() {
                   aria-live={lowTime ? "assertive" : "off"}
                   aria-label={`Time remaining ${formatTime(secondsLeft)}`}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 font-mono text-lg font-bold tabular-nums ring-1 transition-colors ${
-                    lowTime ? "animate-pulse bg-orange-50 text-accent ring-orange-200" : "bg-navy-900 text-white ring-navy-900"
+                    lowTime ? "animate-pulse bg-orange-50 text-accent-strong ring-orange-200" : "bg-navy-900 text-white ring-navy-900"
                   }`}
                 >
                   <IconTimer className="h-5 w-5" /> {formatTime(secondsLeft)}
@@ -289,7 +302,7 @@ export default function ExamEngine() {
               <div className="flex flex-col items-center gap-6 sm:flex-row">
                 <ScoreRing score={score} total={QUESTIONS.length} passed={passed} />
                 <div className="text-center sm:text-left">
-                  <p className={`text-sm font-bold tracking-wide uppercase ${passed ? "text-emerald-600" : "text-accent"}`}>
+                  <p className={`text-sm font-bold tracking-wide uppercase ${passed ? "text-emerald-600" : "text-accent-strong"}`}>
                     {passed ? "Passed" : "Not yet passed"}
                   </p>
                   <h3 className="font-display text-2xl font-bold text-navy-900">
@@ -328,37 +341,14 @@ export default function ExamEngine() {
               </ul>
 
               <h4 className="mt-8 text-sm font-semibold text-navy-900">Certificate preview</h4>
-              <CertificatePreview
-                name={displayName}
-                title={passed ? EXAM_TITLE : "Diagnostic Participation"}
-                score={score}
-                total={QUESTIONS.length}
-                credentialId={credentialId}
-                issuedOn={issuedOn}
-              />
+              <div className="mt-3">
+                <Certificate data={certData} settings={settings} />
+              </div>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <button
-                  className="btn-primary flex-1"
-                  disabled={downloading}
-                  onClick={async () => {
-                    setDownloading(true);
-                    try {
-                      await downloadCertificatePdf({
-                        name: displayName,
-                        title: passed ? EXAM_TITLE : "Diagnostic Participation",
-                        score,
-                        total: QUESTIONS.length,
-                        credentialId,
-                        issuedOn,
-                      });
-                    } finally {
-                      setDownloading(false);
-                    }
-                  }}
-                >
-                  <IconDownload className="h-4 w-4" /> {downloading ? "Preparing PDF…" : "Download PDF Certificate"}
-                </button>
+                <div className="flex-1">
+                  <CertificateDownload data={certData} settings={settings} className="btn-primary w-full" />
+                </div>
                 <button onClick={start} className="btn-secondary flex-1">
                   <IconRefresh className="h-4 w-4" /> Retake Diagnostic
                 </button>
@@ -371,7 +361,7 @@ export default function ExamEngine() {
   );
 }
 
-function ScoreRing({ score, total, passed }: { score: number; total: number; passed: boolean }) {
+export function ScoreRing({ score, total, passed }: { score: number; total: number; passed: boolean }) {
   const pct = score / total;
   const r = 42, c = 2 * Math.PI * r;
   return (
@@ -387,40 +377,6 @@ function ScoreRing({ score, total, passed }: { score: number; total: number; pas
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">
         <span className="font-display text-2xl font-bold text-navy-900">{Math.round(pct * 100)}%</span>
-      </div>
-    </div>
-  );
-}
-
-function CertificatePreview(p: { name: string; title: string; score: number; total: number; credentialId: string; issuedOn: string }) {
-  const qr = useMemo(() => mockQrMatrix(p.credentialId), [p.credentialId]);
-  return (
-    <div className="mt-3 rounded-xl bg-navy-900 p-2">
-      <div className="relative rounded-lg border-2 border-brand/60 bg-white p-5 sm:p-7">
-        <span className="absolute top-0 left-5 h-1 w-16 bg-accent sm:left-7" />
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="font-display text-sm font-bold text-navy-900">NextGen Educator</p>
-            <p className="text-[9px] font-semibold tracking-[0.2em] text-slate-400 uppercase">Train. Test. Certify.</p>
-          </div>
-          <span className="rounded bg-red-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-500 uppercase">Sample</span>
-        </div>
-        <div className="mt-5 text-center">
-          <p className="text-[10px] tracking-[0.2em] text-slate-400 uppercase">This certifies that</p>
-          <p className="mt-1 font-display text-2xl font-bold break-words text-navy-900 sm:text-3xl">{p.name}</p>
-          <p className="mt-2 text-xs text-slate-500">has successfully completed the</p>
-          <p className="font-display text-base font-semibold text-brand sm:text-lg">{p.title}</p>
-          <p className="mt-1 text-xs text-slate-500">Score {p.score}/{p.total} · Issued {p.issuedOn}</p>
-        </div>
-        <div className="mt-6 flex items-end justify-between gap-4">
-          <div className="text-[10px] text-slate-500">
-            <p className="font-mono font-semibold text-navy-900">{p.credentialId}</p>
-            <p>Verify at nextgeneducator.example/verify</p>
-          </div>
-          <svg viewBox={`0 0 ${qr.length} ${qr.length}`} className="h-16 w-16 shrink-0" shapeRendering="crispEdges" aria-label="Verification QR code (mock)">
-            {qr.flatMap((row, r) => row.map((on, c) => (on ? <rect key={`${r}-${c}`} x={c} y={r} width="1" height="1" fill="#0f2a4a" /> : null)))}
-          </svg>
-        </div>
       </div>
     </div>
   );

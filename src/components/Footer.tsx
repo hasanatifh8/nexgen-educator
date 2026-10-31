@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useSyncExternalStore, type FormEvent } from "react";
+import Link from "next/link";
 import Logo from "./Logo";
 
 const columns = [
-  { title: "Platform", links: [["Courses", "#courses"], ["Certifications", "#certifications"], ["Practice Tests", "#practice-tests"], ["Pricing", "#pricing"]] },
-  { title: "Solutions", links: [["For Teachers", "#"], ["For Institutions", "#institutions"], ["Verify a Certificate", "#"], ["Partner Program", "#"]] },
+  { title: "Platform", links: [["Courses", "/courses"], ["How it works", "/#how-it-works"], ["Practice Tests", "/#practice-tests"], ["FAQ", "/#faq"]] },
+  { title: "Solutions", links: [["Create Account", "/register"], ["For Institutions", "/#institutions"], ["Verify a Certificate", "/verify"], ["Partner Program", "#"]] },
   { title: "Company", links: [["About Us", "#"], ["Careers", "#"], ["Blog", "#"], ["Contact", "#"]] },
 ];
 
@@ -39,7 +40,7 @@ export default function Footer() {
                 <h3 className="text-sm font-semibold text-white">{col.title}</h3>
                 <ul className="mt-4 space-y-3 text-sm">
                   {col.links.map(([label, href]) => (
-                    <li key={label}><a href={href} className="transition-colors hover:text-brand">{label}</a></li>
+                    <li key={label}><Link href={href} className="transition-colors hover:text-brand">{label}</Link></li>
                   ))}
                 </ul>
               </div>
@@ -50,7 +51,7 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white">The Educator’s Brief</h3>
             <p className="mt-2 text-sm">Weekly classroom-ready strategies, AI tools, and new certification launches. No spam.</p>
             {status === "done" ? (
-              <p role="status" className="mt-4 rounded-lg bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-400 ring-1 ring-emerald-500/30">
+              <p role="status" className="mt-4 rounded-lg bg-emerald-600/10 px-4 py-3 text-sm font-medium text-emerald-400 ring-1 ring-emerald-500/30">
                 You’re subscribed! Check your inbox to confirm.
               </p>
             ) : (
