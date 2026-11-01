@@ -20,7 +20,7 @@ async function RequestSent({ params }: { params: P["params"] }) {
   if (!request) redirect(`/courses/${course.id}`);
 
   const program = catalog.programs.find((p) => p.id === course.programId);
-  const paid = (program?.price ?? 0) > 0;
+  const paid = course.price > 0;
   const lessons = allLessons(course);
   const minutes = lessons.reduce((n, l) => n + l.minutes, 0);
   const others = record.requests
@@ -32,8 +32,8 @@ async function RequestSent({ params }: { params: P["params"] }) {
   const steps = [
     { title: "Request received", text: `Submitted on ${fmtDate(request.at)}. A confirmation has been sent to ${user.email}.`, done: true },
     { title: "Review by our team", text: verified ? "We check your request and confirm the course is right for you." : "We verify your profile documents and review your request together.", done: false },
-    ...(paid && program
-      ? [{ title: "Program fee", text: `Our team will contact you with payment details for the one-time fee of ${formatINR(priceWithGst(program.price))} (including GST).`, done: false }]
+    ...(paid
+      ? [{ title: "Course fee", text: `Our team will contact you with payment details for the one-time fee of ${formatINR(priceWithGst(course.price))} (including GST).`, done: false }]
       : []),
     { title: "Course approved", text: "You receive an email, and the course appears in My courses, ready to start.", done: false },
   ];
@@ -49,7 +49,7 @@ async function RequestSent({ params }: { params: P["params"] }) {
           <h1 className="mt-6 font-display text-3xl font-bold sm:text-4xl">Request submitted successfully</h1>
           <p className="mx-auto mt-3 max-w-xl text-emerald-50">
             Thank you, {user.firstName}. Your request to join <span className="font-semibold text-white">{course.title}</span> has been sent to our team.
-            {paid ? " We will be in touch about the program fee." : " Approval usually takes 1–2 working days."}
+            {paid ? " We will be in touch about the course fee." : " Approval usually takes 1–2 working days."}
           </p>
         </div>
       </section>
@@ -79,10 +79,10 @@ async function RequestSent({ params }: { params: P["params"] }) {
             </dl>
             <div className="mt-5 flex items-center gap-3 rounded-xl p-4 ring-1 ring-slate-100">
               <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${paid ? "bg-orange-50 text-accent-strong" : "bg-emerald-50 text-emerald-600"}`}><IconWallet className="h-5 w-5" /></span>
-              {paid && program ? (
+              {paid ? (
                 <div className="text-sm">
-                  <p className="font-semibold text-navy-900">{formatINR(priceWithGst(program.price))} one-time program fee</p>
-                  <p className="text-xs text-slate-500">{formatINR(program.price)} + {formatINR(gstOn(program.price))} GST · covers every course in the program</p>
+                  <p className="font-semibold text-navy-900">{formatINR(priceWithGst(course.price))} one-time course fee</p>
+                  <p className="text-xs text-slate-500">{formatINR(course.price)} + {formatINR(gstOn(course.price))} GST</p>
                 </div>
               ) : (
                 <div className="text-sm">

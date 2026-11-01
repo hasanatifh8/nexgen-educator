@@ -37,7 +37,7 @@ export default function Hero() {
             <a href="#finder" className="btn-ghost-dark px-6 py-3.5 text-base">Find my program in 30 seconds</a>
           </div>
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-300">
-            {["Free to register", "Free & premium programs", "Add to LinkedIn in one click"].map((t) => (
+            {["Free to register", "Free & paid courses", "Add to LinkedIn in one click"].map((t) => (
               <li key={t} className="flex items-center gap-1.5">
                 <IconCheck className="h-4 w-4 text-brand-teal" /> {t}
               </li>

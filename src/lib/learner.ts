@@ -1,32 +1,39 @@
 import { isCourseComplete } from "./access";
-import { coursesFor, priceWithGst, type Catalog, type Program } from "./catalog";
+import { priceWithGst, type Catalog, type Program } from "./catalog";
 import type { PaymentRecord, PaymentStatus, StoredUser } from "./users";
 
 /** Derived learner state shared by the learner portal and the admin learner page. */
 
 export type PaymentRow = {
-  program: Program;
-  /** Courses of this program the learner has been assigned or has requested. */
-  courses: { id: string; title: string; assigned: boolean }[];
+  course: { id: string; title: string; price: number };
+  program?: Program;
+  /** Assigned (enrolled) or only requested so far. */
+  assigned: boolean;
   amountDue: number;
   status: PaymentStatus;
   record?: PaymentRecord;
 };
 
-/** Paid programs the learner is enrolled in or has asked to join, with the payment our team recorded. */
+/**
+ * Paid courses the learner is enrolled in or has asked to join, with the payment our team recorded.
+ * Payments are per course; records saved when fees were per program still cover that program's courses.
+ */
 export function paymentRows(user: Pick<StoredUser, "assignedCourses" | "requests" | "payments" | "purchases">, { programs, courses }: Catalog): PaymentRow[] {
   const requested = new Set(user.requests.map((r) => r.courseId));
-  return programs
-    .filter((p) => p.price > 0)
-    .map((program) => {
-      const mine = coursesFor(courses, program.id)
-        .filter((c) => user.assignedCourses.includes(c.id) || requested.has(c.id))
-        .map((c) => ({ id: c.id, title: c.title, assigned: user.assignedCourses.includes(c.id) }));
-      const record = user.payments?.[program.id];
-      const status: PaymentStatus = record?.status ?? (user.purchases.includes(program.id) ? "paid" : "pending");
-      return { program, courses: mine, amountDue: priceWithGst(program.price), status, record };
-    })
-    .filter((r) => r.courses.length > 0 || r.record);
+  return courses
+    .filter((c) => c.price > 0 && (user.assignedCourses.includes(c.id) || requested.has(c.id) || user.payments?.[c.id]))
+    .map((c) => {
+      const record = user.payments?.[c.id] ?? user.payments?.[c.programId];
+      const status: PaymentStatus = record?.status ?? (user.purchases.includes(c.programId) ? "paid" : "pending");
+      return {
+        course: { id: c.id, title: c.title, price: c.price },
+        program: programs.find((p) => p.id === c.programId),
+        assigned: user.assignedCourses.includes(c.id),
+        amountDue: priceWithGst(c.price),
+        status,
+        record,
+      };
+    });
 }
 
 export type ResumeStage = "locked" | "queued" | "in_progress" | "ready";

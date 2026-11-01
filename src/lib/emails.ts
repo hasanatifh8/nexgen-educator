@@ -83,11 +83,11 @@ export function passwordResetEmail(firstName: string, link: string): Email {
   });
 }
 
-export function paymentReceivedEmail(firstName: string, base: string, p: { programTitle: string; amount: string; reference?: string; date: string }): Email {
-  return render(`Payment received: ${p.programTitle}`, {
+export function paymentReceivedEmail(firstName: string, base: string, p: { courseTitle: string; amount: string; reference?: string; date: string }): Email {
+  return render(`Payment received: ${p.courseTitle}`, {
     greeting: `Dear ${firstName},`,
     paragraphs: [
-      `Thank you. We have received your payment of ${p.amount} for the ${p.programTitle} program on ${p.date}.${p.reference ? ` Transaction reference: ${p.reference}.` : ""}`,
+      `Thank you. We have received your payment of ${p.amount} for ${p.courseTitle} on ${p.date}.${p.reference ? ` Transaction reference: ${p.reference}.` : ""}`,
       "You can view the status of all your payments at any time in the Payments section of your learner portal.",
     ],
     button: { label: "View payments", url: `${base}/my-learning/payments` },
@@ -112,7 +112,7 @@ export function courseRequestedEmail(firstName: string, base: string, r: { cours
     paragraphs: [
       `We have received your request to join ${r.courseTitle}, part of the ${r.programTitle} program.`,
       r.fee
-        ? `This is a premium program with a one-time fee of ${r.fee} (including 18% GST). Our team will contact you with payment details, and the course will be approved for you as soon as payment is confirmed.`
+        ? `This is a paid course with a one-time fee of ${r.fee} (including 18% GST). Our team will contact you with payment details, and the course will be approved for you as soon as payment is confirmed.`
         : "This course is free. Our team will review your request and approve it, usually within 1–2 working days.",
       "We will email you again the moment the course is available in your learner portal.",
     ],

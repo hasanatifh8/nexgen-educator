@@ -176,8 +176,8 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-brand-ink"><IconWallet className="h-5 w-5" /></span>
               <p className="text-sm text-slate-600">
                 {due.length
-                  ? `${formatINR(due.reduce((n, r) => n + r.amountDue, 0))} due for ${due.map((r) => r.program.title).join(", ")}.`
-                  : payments.length ? "All your program fees are settled." : "You have no premium program fees."}
+                  ? `${formatINR(due.reduce((n, r) => n + r.amountDue, 0))} due for ${due.map((r) => r.course.title).join(", ")}.`
+                  : payments.length ? "All your course fees are settled." : "You have no paid course fees."}
               </p>
             </div>
             <Link href="/my-learning/payments" className="btn-secondary mt-4 w-full py-2 text-sm">View payments</Link>

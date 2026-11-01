@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { LEVELS, priceShort, type CourseSummary } from "@/lib/catalog";
+import { useActionState, useState } from "react";
+import { DEFAULT_PREMIUM_PRICE, GST_RATE, LEVELS, formatINR, gstOn, priceWithGst, type CourseSummary } from "@/lib/catalog";
 import { saveCourseAction, type FormState } from "../actions";
 import { Field, FormError, inputCls } from "../fields";
 
-type ProgramOption = { id: string; title: string; price: number; category: string };
+type ProgramOption = { id: string; title: string; category: string };
 
 export default function CourseForm({ course, programs }: { course?: CourseSummary; programs: ProgramOption[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveCourseAction, {});
   const fe = state.fieldErrors ?? {};
+  const [free, setFree] = useState(course ? course.price === 0 : true);
+  const [price, setPrice] = useState(String(course && course.price > 0 ? course.price : DEFAULT_PREMIUM_PRICE));
+  const amount = Number(price);
 
   return (
     <form action={action} className="card mt-6 space-y-5 p-6 sm:p-8">
@@ -21,12 +24,12 @@ export default function CourseForm({ course, programs }: { course?: CourseSummar
         <input id="title" name="title" defaultValue={course?.title} placeholder="e.g. Universal Design for Learning" className={inputCls(!!fe.title)} />
       </Field>
 
-      <Field id="programId" label="Certification program" error={fe.programId} hint="Sets the course’s category and whether it’s free or premium.">
+      <Field id="programId" label="Certification program" error={fe.programId} hint="Sets the course’s category and which certificate it counts towards.">
         <select id="programId" name="programId" defaultValue={course?.programId ?? ""} className={inputCls(!!fe.programId)}>
           <option value="" disabled>Select a program…</option>
           {programs.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.title} — {priceShort(p.price)} ({p.category})
+              {p.title} ({p.category})
             </option>
           ))}
         </select>
@@ -46,6 +49,41 @@ export default function CourseForm({ course, programs }: { course?: CourseSummar
           <input id="enrolled" name="enrolled" defaultValue={course?.enrolled} className={inputCls(!!fe.enrolled)} />
         </Field>
       </div>
+
+      <fieldset>
+        <legend className="text-sm font-semibold text-navy-900">Course fee</legend>
+        <input type="hidden" name="pricing" value={free ? "free" : "paid"} />
+        <div className="mt-2 inline-flex rounded-lg bg-slate-100 p-1">
+          {[["Free", true], ["Paid", false]].map(([label, val]) => (
+            <button
+              key={String(label)}
+              type="button"
+              onClick={() => setFree(val as boolean)}
+              aria-pressed={free === val}
+              className={`rounded-md px-4 py-1.5 text-sm font-semibold transition-colors ${free === val ? "bg-white text-navy-900 shadow-sm" : "text-slate-500"}`}
+            >
+              {label as string}
+            </button>
+          ))}
+        </div>
+        {free ? (
+          <p className="mt-2 text-xs text-slate-500">Learners can request this course at no cost.</p>
+        ) : (
+          <div className="mt-3 max-w-xs">
+            <Field
+              id="price"
+              label="Fee in ₹ (before GST)"
+              error={fe.price}
+              hint={amount > 0 ? `${formatINR(amount)} + ${formatINR(gstOn(amount))} GST (${Math.round(GST_RATE * 100)}%) = ${formatINR(priceWithGst(amount))} total` : undefined}
+            >
+              <div className="relative">
+                <span className="absolute top-1/2 left-3.5 mt-0.75 -translate-y-1/2 text-sm text-slate-500">₹</span>
+                <input id="price" name="price" type="number" min="1" max="100000" step="1" value={price} onChange={(e) => setPrice(e.target.value)} className={`${inputCls(!!fe.price)} pl-7`} />
+              </div>
+            </Field>
+          </div>
+        )}
+      </fieldset>
 
       <Field id="blurb" label="Card description" error={fe.blurb} hint="Shown on the course card (10–300 characters).">
         <textarea id="blurb" name="blurb" rows={3} defaultValue={course?.blurb} className={inputCls(!!fe.blurb)} />

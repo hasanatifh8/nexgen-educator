@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { priceShort } from "@/lib/catalog";
+import { formatINR, priceShort, priceWithGst } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalogStore";
 import { requireAdmin } from "@/lib/dal";
 import { deleteCourseAction } from "../actions";
@@ -26,7 +26,7 @@ async function Courses({ searchParams }: { searchParams: PageProps<"/admin/cours
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs tracking-wide text-slate-500 uppercase">
             <tr>
-              <th className="px-5 py-3">Course</th><th className="px-5 py-3">Program</th><th className="px-5 py-3">Access</th>
+              <th className="px-5 py-3">Course</th><th className="px-5 py-3">Program</th><th className="px-5 py-3">Fee</th>
               <th className="px-5 py-3">Content</th><th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -41,11 +41,15 @@ async function Courses({ searchParams }: { searchParams: PageProps<"/admin/cours
                   </td>
                   <td className="px-5 py-4 text-slate-600">{p?.title ?? <span className="text-red-600">Missing program</span>}</td>
                   <td className="px-5 py-4">
-                    {!p ? "—" : p.price === 0 ? (
+                    {c.price === 0 ? (
                       <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">Free</span>
                     ) : (
-                      <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700 ring-1 ring-orange-100">Premium · {priceShort(p.price)}</span>
+                      <>
+                        <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700 ring-1 ring-orange-100">Paid · {priceShort(c.price)}</span>
+                        <span className="mt-1 block text-xs text-slate-500">{formatINR(priceWithGst(c.price))} incl. GST</span>
+                      </>
                     )}
+                    <Link href={`/admin/courses/${c.id}`} className="mt-1 block text-xs font-semibold text-brand-ink hover:underline">Change fee</Link>
                   </td>
                   <td className="px-5 py-4 text-slate-600">
                     {(() => {

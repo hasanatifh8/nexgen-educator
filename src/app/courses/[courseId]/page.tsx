@@ -10,7 +10,7 @@ import { courseProgress } from "@/components/learn/progress";
 import { IconArrowRight, IconBadge, IconBook, IconCheck, IconChevronDown, IconClock, IconLock, IconPlay, IconTimer } from "@/components/Icons";
 import { connection } from "next/server";
 import { canAccessCourse, examEligibility } from "@/lib/access";
-import { GST_RATE, formatINR, priceWithGst } from "@/lib/catalog";
+import { GST_RATE, formatINR, priceShort, priceWithGst } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalogStore";
 import { getCurrentUser } from "@/lib/dal";
 import { requestAccessAction } from "../actions";
@@ -56,10 +56,10 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
             <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-semibold">
               <span className="rounded-full bg-white/10 px-3 py-1 text-sky-200">{course.category}</span>
               <span className={`rounded-full px-3 py-1 ring-1 ${LEVEL_STYLES[course.level]}`}>{course.level}</span>
-              {program.price === 0 ? (
+              {course.price === 0 ? (
                 <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-emerald-300">Free</span>
               ) : (
-                <span className="flex items-center gap-1 rounded-full bg-orange-400/15 px-3 py-1 text-orange-300">{!unlocked && <IconLock className="h-3 w-3" />} Premium</span>
+                <span className="flex items-center gap-1 rounded-full bg-orange-400/15 px-3 py-1 text-orange-300">{!unlocked && <IconLock className="h-3 w-3" />} Paid · {priceShort(course.price)}</span>
               )}
             </div>
             <h1 className="mt-4 font-display text-4xl leading-tight font-extrabold tracking-tight sm:text-5xl">{course.title}</h1>
@@ -110,9 +110,9 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                 <div className="flex items-center justify-between">
                   <span className="grid h-12 w-12 place-items-center rounded-xl bg-orange-50 text-accent-strong ring-1 ring-orange-100"><IconLock className="h-6 w-6" /></span>
                   <span className="text-right">
-                    <span className="block font-display text-2xl font-bold">{program.price === 0 ? "Free" : formatINR(program.price)}</span>
+                    <span className="block font-display text-2xl font-bold">{course.price === 0 ? "Free" : formatINR(course.price)}</span>
                     <span className="text-xs text-slate-500">
-                      {program.price === 0 ? "free course" : `+ ${Math.round(GST_RATE * 100)}% GST · ${formatINR(priceWithGst(program.price))} total`}
+                      {course.price === 0 ? "free course" : `+ ${Math.round(GST_RATE * 100)}% GST · ${formatINR(priceWithGst(course.price))} total`}
                     </span>
                   </span>
                 </div>
@@ -133,7 +133,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                   <>
                     <p className="mt-4 flex items-center gap-2 font-display text-xl font-bold"><IconCheck className="h-5 w-5 text-emerald-600" /> Access requested</p>
                     <p className="mt-1 text-sm text-slate-600">
-                      {requested ? "Thanks! " : ""}Our team will review your request{program.price > 0 ? " and contact you about the program fee" : ""}. The course unlocks as soon as it’s assigned.
+                      {requested ? "Thanks! " : ""}Our team will review your request{course.price > 0 ? " and contact you about the course fee" : ""}. The course unlocks as soon as it’s assigned.
                     </p>
                     <Link href="/my-learning" className="btn-secondary mt-6 w-full">Go to My Learning</Link>
                   </>
@@ -141,7 +141,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                   <>
                     <p className="mt-4 font-display text-xl font-bold">Request this course</p>
                     <p className="mt-1 text-sm text-slate-600">
-                      Part of <span className="font-semibold text-navy-900">{program.title}</span>. Courses are assigned by our team{program.price > 0 ? " after the program fee is confirmed" : ""}.
+                      Part of <span className="font-semibold text-navy-900">{program.title}</span>. Courses are assigned by our team{course.price > 0 ? " after the course fee is confirmed" : ""}.
                     </p>
                     <form action={requestAccessAction}>
                       <input type="hidden" name="courseId" value={course.id} />

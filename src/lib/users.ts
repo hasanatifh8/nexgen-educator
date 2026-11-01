@@ -37,7 +37,7 @@ export type StoredUser = {
   requests: { courseId: string; at: string }[];
   /** Every certification-exam attempt; each attempt can be submitted once. */
   examAttempts: ExamAttempt[];
-  /** programId → payment recorded by an admin (there is no online checkout yet). */
+  /** courseId → payment recorded by an admin (there is no online checkout yet). Older records are keyed by programId. */
   payments?: Record<string, PaymentRecord>;
   /** The resume our team rewrites from the learner's CV after they complete a course. */
   resumeService?: ResumeService;
@@ -336,9 +336,9 @@ export async function setAssignedCourses(userId: string, courseIds: string[]) {
   });
 }
 
-export async function setPayment(userId: string, programId: string, record: PaymentRecord) {
+export async function setPayment(userId: string, courseId: string, record: PaymentRecord) {
   return updateUser(userId, (u) => {
-    u.payments = { ...u.payments, [programId]: record };
+    u.payments = { ...u.payments, [courseId]: record };
   });
 }
 

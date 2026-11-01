@@ -16,7 +16,7 @@ async function Programs({ searchParams }: { searchParams: PageProps<"/admin/prog
     <>
       <AdminTitle
         title="Programs & Exams"
-        subtitle="Set prices (0 = free) and build each program’s certification exam."
+        subtitle="Group courses into certifications and build each program’s exam. Fees are set on each course; the price shown is the total of its courses."
         action={<Link href="/admin/programs/new" className="btn-primary">+ New program</Link>}
       />
       <Flash saved={one(sp.saved)} deleted={sp.deleted === "1"} error={one(sp.error)} />
@@ -25,7 +25,7 @@ async function Programs({ searchParams }: { searchParams: PageProps<"/admin/prog
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs tracking-wide text-slate-500 uppercase">
             <tr>
-              <th className="px-5 py-3">Program</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Courses</th>
+              <th className="px-5 py-3">Program</th><th className="px-5 py-3">Total fee</th><th className="px-5 py-3">Courses</th>
               <th className="px-5 py-3">Exam</th><th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -45,7 +45,7 @@ async function Programs({ searchParams }: { searchParams: PageProps<"/admin/prog
                     ) : (
                       <>
                         <span className="font-semibold text-navy-900">{priceShort(p.price)}</span>
-                        <span className="block text-xs text-slate-500">{formatINR(priceWithGst(p.price))} incl. GST</span>
+                        <span className="block text-xs text-slate-500">{formatINR(priceWithGst(p.price))} incl. GST · all courses</span>
                       </>
                     )}
                   </td>

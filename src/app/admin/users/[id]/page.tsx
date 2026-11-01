@@ -39,10 +39,10 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
   const groups = programs.map((g) => ({
     id: g.id,
     title: g.title,
-    price: g.price,
     courses: coursesFor(courses, g.id).map((c) => ({
       id: c.id,
       title: c.title,
+      price: c.price,
       lessons: c.modules.reduce((n, m) => n + m.lessons.length, 0),
       done: (user.progress[c.id] ?? []).length,
     })),
@@ -150,18 +150,19 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <section id="payments" className="card scroll-mt-24 p-6">
           <h2 className="font-display text-lg font-semibold text-navy-900">Payments</h2>
-          <p className="mt-1 text-sm text-slate-500">Record payments for paid programs this learner joined or requested. Marking a payment as paid emails the learner a receipt.</p>
+          <p className="mt-1 text-sm text-slate-500">Record payments for paid courses this learner joined or requested. Marking a payment as paid emails the learner a receipt.</p>
           {payments.length === 0 ? (
-            <p className="mt-4 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">No paid programs requested or assigned.</p>
+            <p className="mt-4 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">No paid courses requested or assigned.</p>
           ) : (
             <div className="mt-4 space-y-4">
               {payments.map((r) => (
-                <form key={r.program.id} action={savePaymentAction} className="rounded-xl border border-slate-200 p-4">
+                <form key={r.course.id} action={savePaymentAction} className="rounded-xl border border-slate-200 p-4">
                   <input type="hidden" name="userId" value={user.id} />
-                  <input type="hidden" name="programId" value={r.program.id} />
+                  <input type="hidden" name="courseId" value={r.course.id} />
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-navy-900">{r.program.title}</p>
+                      <p className="text-sm font-semibold text-navy-900">{r.course.title}</p>
+                      <p className="text-xs text-slate-500">{r.program?.title}{r.assigned ? "" : " · requested"}</p>
                       <p className="text-xs text-slate-500">Fee {formatINR(r.amountDue)} incl. GST · {PAYMENT_LABEL[r.status]}{r.record?.updatedAt ? ` · updated ${fmtDate(r.record.updatedAt)}` : ""}</p>
                     </div>
                   </div>

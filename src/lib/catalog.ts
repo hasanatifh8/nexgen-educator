@@ -24,7 +24,7 @@ export type Program = {
   title: string;
   category: Category;
   level: Level;
-  /** 0 = free */
+  /** Total of its courses’ fees before GST (0 = every course is free). Derived when the catalog is read. */
   price: number;
   description: string;
   exam: Exam;
@@ -57,6 +57,8 @@ export type Course = {
   blurb: string;
   enrolled?: string;
   programId: string;
+  /** Course fee in rupees before GST; 0 = free. */
+  price: number;
   /** Longer “About this course” text (supports the rich-text format). */
   overview: string;
   outcomes: string[];
@@ -106,7 +108,7 @@ const q = (id: string, prompt: string, options: string[], answer: number, explan
   id, prompt, options, answer, explanation, ...(scenario ? { scenario } : {}),
 });
 
-export type CourseBase = Omit<Course, "overview" | "outcomes" | "instructor" | "modules">;
+export type CourseBase = Omit<Course, "overview" | "outcomes" | "instructor" | "modules" | "price"> & { price?: number };
 
 /** Course content for these lives in seedContent.ts and is merged in by catalogStore. */
 export const SEED_CATALOG: { programs: Program[]; courses: CourseBase[] } = {

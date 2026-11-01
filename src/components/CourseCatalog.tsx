@@ -54,7 +54,7 @@ export default function CourseCatalog({ courses, programs, viewer }: Props) {
 
   const listed = courses.filter((c) => programById[c.programId]);
   const visible = listed.filter((c) => {
-    const free = programById[c.programId].price === 0;
+    const free = c.price === 0;
     return (active === "All" || c.category === active) && (access === "all" || (access === "free") === free);
   });
 
@@ -112,11 +112,11 @@ export default function CourseCatalog({ courses, programs, viewer }: Props) {
                 <div className="flex flex-1 flex-col p-6">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-brand-ink">{c.category}</span>
-                    {program.price === 0 ? (
+                    {c.price === 0 ? (
                       <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">Free</span>
                     ) : (
                       <span className="flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700 ring-1 ring-orange-100">
-                        {viewer && !unlocked && <IconLock className="h-3 w-3" />} Premium · {priceShort(program.price)}
+                        {viewer && !unlocked && <IconLock className="h-3 w-3" />} Paid · {priceShort(c.price)}
                       </span>
                     )}
                   </div>

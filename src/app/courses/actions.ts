@@ -24,7 +24,7 @@ export async function requestAccessAction(fd: FormData) {
 
   const [program, base] = await Promise.all([getProgram(course.programId), appUrl()]);
   if (isNew && program && base) {
-    const fee = program.price > 0 ? formatINR(priceWithGst(program.price)) : undefined;
+    const fee = course.price > 0 ? formatINR(priceWithGst(course.price)) : undefined;
     await sendMail({ to: user.email, ...courseRequestedEmail(user.firstName, base, { courseTitle: course.title, programTitle: program.title, fee }) });
   }
   redirect(`/my-learning/requests/${encodeURIComponent(courseId)}`);

@@ -241,6 +241,7 @@ const content: Pick<Course, "overview" | "outcomes" | "instructor" | "modules"> 
 export const INTRO_AI_COURSE: Course = {
   id: INTRO_AI_COURSE_ID,
   programId: INTRO_AI_PROGRAM_ID,
+  price: 0,
   title: "Introduction to AI for Class Teachers",
   category: "AI Tools for Teachers",
   hours: 3,

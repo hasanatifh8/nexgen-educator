@@ -37,18 +37,15 @@ export async function saveProgramAction(_prev: FormState, fd: FormData): Promise
   const category = str(fd, "category") as Category;
   const level = str(fd, "level") as Level;
   const description = str(fd, "description");
-  const price = Number(str(fd, "price"));
 
   const e: Record<string, string> = {};
   if (title.length < 3 || title.length > 100) e.title = "Title must be 3–100 characters.";
   if (!CATEGORIES.includes(category)) e.category = "Choose a category.";
   if (!LEVELS.includes(level)) e.level = "Choose a level.";
-  if (!Number.isFinite(price) || price < 0 || price > 100000 || Math.round(price * 100) !== price * 100)
-    e.price = "Enter a price in rupees from 0 to 1,00,000 (0 = free), before GST.";
   if (description.length < 10 || description.length > 300) e.description = "Description must be 10–300 characters.";
   if (Object.keys(e).length) return { error: "Please fix the highlighted fields.", fieldErrors: e };
 
-  const saved = await upsertProgram({ id, title, category, level, price, description });
+  const saved = await upsertProgram({ id, title, category, level, description });
   if (!saved) return { error: "That program no longer exists." };
   redirect(`/admin/programs?saved=${encodeURIComponent(saved.title)}`);
 }
@@ -74,6 +71,7 @@ export async function saveCourseAction(_prev: FormState, fd: FormData): Promise<
   const outcomes = String(fd.get("outcomes") ?? "").split("\n").map((l) => l.replace(/^[-*•]\s*/, "").trim()).filter(Boolean);
   const instructorName = str(fd, "instructorName");
   const instructorTitle = str(fd, "instructorTitle");
+  const price = str(fd, "pricing") === "free" ? 0 : Number(str(fd, "price"));
 
   const e: Record<string, string> = {};
   if (title.length < 3 || title.length > 120) e.title = "Title must be 3–120 characters.";
@@ -84,12 +82,14 @@ export async function saveCourseAction(_prev: FormState, fd: FormData): Promise<
   if (!(await getProgram(programId))) e.programId = "Choose a certification program.";
   if (!LEVELS.includes(level)) e.level = "Choose a level.";
   if (!Number.isFinite(hours) || hours < 0.5 || hours > 200) e.hours = "Enter a duration from 0.5 to 200 hours.";
+  if (str(fd, "pricing") !== "free" && (!Number.isInteger(price) || price < 1 || price > 100000))
+    e.price = "Enter a whole-rupee fee from ₹1 to ₹1,00,000 (before GST), or choose Free.";
   if (blurb.length < 10 || blurb.length > 300) e.blurb = "Description must be 10–300 characters.";
   if (enrolled.length > 12) e.enrolled = "Keep this short, e.g. 2.4k.";
   if (Object.keys(e).length) return { error: "Please fix the highlighted fields.", fieldErrors: e };
 
   const saved = await upsertCourse({
-    id, title, programId, level, blurb, hours, overview, outcomes,
+    id, title, programId, level, blurb, hours, price, overview, outcomes,
     ...(enrolled ? { enrolled } : {}),
     ...(instructorName ? { instructor: { name: instructorName, title: instructorTitle } } : {}),
   });
@@ -250,11 +250,11 @@ export async function reviewProfileAction(fd: FormData) {
 export async function savePaymentAction(fd: FormData) {
   await assertAdmin();
   const userId = str(fd, "userId");
-  const programId = str(fd, "programId");
+  const courseId = str(fd, "courseId");
   const status = str(fd, "status") as PaymentStatus;
   const back = (error?: string) => redirect(`/admin/users/${userId}${error ? `?error=${encodeURIComponent(error)}` : "?saved=payment"}#payments`);
-  const [user, program] = await Promise.all([findUserById(userId), getProgram(programId)]);
-  if (!user || !program) redirect("/admin/users");
+  const [user, course] = await Promise.all([findUserById(userId), getCourse(courseId)]);
+  if (!user || !course) redirect("/admin/users");
   if (!PAYMENT_STATUSES.includes(status)) back("Choose a payment status.");
 
   const amountRaw = str(fd, "amount");
@@ -273,14 +273,15 @@ export async function savePaymentAction(fd: FormData) {
   }
 
   const paidAt = paid ? (paidOn ? new Date(`${paidOn}T12:00:00Z`) : new Date()).toISOString() : undefined;
-  await setPayment(userId, programId, { status, ...(paid ? { amount, reference, paidAt } : {}), updatedAt: new Date().toISOString() });
+  await setPayment(userId, courseId, { status, ...(paid ? { amount, reference, paidAt } : {}), updatedAt: new Date().toISOString() });
 
   // Receipt email only when the payment is newly confirmed.
   const base = await appUrl();
-  if (paid && user.payments?.[programId]?.status !== "paid" && base) {
+  const previous = user.payments?.[courseId] ?? user.payments?.[course.programId];
+  if (paid && previous?.status !== "paid" && base) {
     await sendMail({
       to: user.email,
-      ...paymentReceivedEmail(user.firstName, base, { programTitle: program.title, amount: formatINR(amount ?? 0), reference, date: fmtDate(paidAt!) }),
+      ...paymentReceivedEmail(user.firstName, base, { courseTitle: course.title, amount: formatINR(amount ?? 0), reference, date: fmtDate(paidAt!) }),
     });
   }
   back();

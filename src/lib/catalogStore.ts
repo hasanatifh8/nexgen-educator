@@ -20,14 +20,26 @@ function withContent(c: Partial<Course> & Pick<Course, "id">): Course {
   } as Course;
 }
 
+/**
+ * Fees are set per course. Catalogs saved before that only priced programs, so a course without a fee
+ * inherits its program's old price. A program's price is always the total of its courses' fees.
+ */
+function withPricing(programs: Program[], courses: (Partial<Course> & Pick<Course, "id" | "programId">)[]): Catalog {
+  const priced = courses.map((c) => withContent({ ...c, price: c.price ?? programs.find((p) => p.id === c.programId)?.price ?? 0 }));
+  return {
+    programs: programs.map((p) => ({ ...p, price: priced.filter((c) => c.programId === p.id).reduce((n, c) => n + c.price, 0) })),
+    courses: priced,
+  };
+}
+
 async function readCatalog(): Promise<Catalog> {
   const raw = await getJson<Catalog>(CATALOG_KEY);
-  if (raw) return { programs: raw.programs, courses: raw.courses.map(withContent) };
+  if (raw) return withPricing(raw.programs, raw.courses);
   // The free intro course leads the catalog as the featured starting point.
-  const seeded: Catalog = {
-    programs: [structuredClone(INTRO_AI_PROGRAM), ...structuredClone(SEED_CATALOG.programs)],
-    courses: [structuredClone(INTRO_AI_COURSE), ...SEED_CATALOG.courses.map(withContent)],
-  };
+  const seeded = withPricing(
+    [structuredClone(INTRO_AI_PROGRAM), ...structuredClone(SEED_CATALOG.programs)],
+    [structuredClone(INTRO_AI_COURSE), ...structuredClone(SEED_CATALOG.courses)],
+  );
   await writeCatalog(seeded);
   return seeded;
 }
@@ -54,7 +66,7 @@ export function slugId(title: string, taken: Set<string>) {
 
 // --- Mutations (always read fresh, never the request-memoized copy) ----------
 
-export async function upsertProgram(input: Omit<Program, "id" | "exam"> & { id?: string }) {
+export async function upsertProgram(input: Omit<Program, "id" | "exam" | "price"> & { id?: string }) {
   const catalog = await readCatalog();
   const existing = input.id ? catalog.programs.find((p) => p.id === input.id) : undefined;
   if (input.id && !existing) return null;
@@ -65,7 +77,7 @@ export async function upsertProgram(input: Omit<Program, "id" | "exam"> & { id?:
     catalog.courses.forEach((c) => c.programId === existing.id && (c.category = existing.category));
   } else {
     const id = slugId(input.title, new Set(catalog.programs.map((p) => p.id)));
-    catalog.programs.push({ ...input, id, exam: { minutes: 15, passPercent: 70, questions: [] } });
+    catalog.programs.push({ ...input, id, price: 0, exam: { minutes: 15, passPercent: 70, questions: [] } });
   }
   await writeCatalog(catalog);
   return existing ?? catalog.programs.at(-1)!;

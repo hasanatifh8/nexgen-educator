@@ -5,7 +5,7 @@ import { priceShort } from "@/lib/catalog";
 import { useFormStatus } from "react-dom";
 import { saveAssignmentsAction } from "../../actions";
 
-type Group = { id: string; title: string; price: number; courses: { id: string; title: string; lessons: number; done: number }[] };
+type Group = { id: string; title: string; courses: { id: string; title: string; price: number; lessons: number; done: number }[] };
 
 function Save({ dirty }: { dirty: boolean }) {
   const { pending } = useFormStatus();
@@ -28,10 +28,7 @@ export default function AssignmentForm({ userId, groups, assigned, requested }: 
           <div key={g.id} className="overflow-hidden rounded-xl border border-slate-200">
             <div className="flex items-center justify-between gap-3 bg-slate-50 px-4 py-2.5">
               <p className="text-sm font-semibold text-navy-900">
-                {g.title}{" "}
-                {g.price === 0
-                  ? <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-100">Free</span>
-                  : <span className="ml-1 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-700 ring-1 ring-orange-100">Paid · {priceShort(g.price)}</span>}
+                {g.title}
               </p>
               {g.courses.length > 0 && (
                 <button type="button" onClick={() => g.courses.forEach((c) => toggle(c.id, !all))} className="text-xs font-semibold text-brand-ink hover:underline">
@@ -45,6 +42,9 @@ export default function AssignmentForm({ userId, groups, assigned, requested }: 
                   <label className={`flex cursor-pointer items-center gap-3 px-4 py-3 text-sm ${requested[c.id] && !selected.has(c.id) ? "bg-orange-50/60" : ""}`}>
                     <input type="checkbox" checked={selected.has(c.id)} onChange={(e) => toggle(c.id, e.target.checked)} className="h-4 w-4 accent-brand" />
                     <span className="flex-1 text-navy-900">{c.title}</span>
+                    {c.price === 0
+                      ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-100">Free</span>
+                      : <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-700 ring-1 ring-orange-100">{priceShort(c.price)}</span>}
                     {requested[c.id] && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold text-orange-700">Requested {requested[c.id]}</span>}
                     {assigned.includes(c.id) && <span className="text-xs text-slate-500">{c.done}/{c.lessons} lessons</span>}
                   </label>

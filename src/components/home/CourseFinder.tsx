@@ -32,7 +32,7 @@ function recommend(courses: CourseOutline[], programs: Record<string, PublicProg
       const gap = Math.abs(RANK[c.level] - RANK[a.level]);
       score += gap === 0 ? 3 : gap === 1 ? 1 : -1;
       if (gap === 0) reasons.push("Right level for you");
-      const free = programs[c.programId]?.price === 0;
+      const free = c.price === 0;
       if (free) { score += a.role === "Student teacher" || !goal.category ? 1.5 : 0.5; reasons.push("Free"); }
       if (a.role === "School leader" && c.category === "Assessment Design") score += 1;
       if (a.role === "Instructional coach" && c.level !== "Beginner") score += 0.5;
@@ -115,7 +115,6 @@ export default function CourseFinder({ courses, programs }: { courses: CourseOut
                 </button>
               </div>
               {picks.map(({ c, reasons }, i) => {
-                const p = byId[c.programId];
                 return (
                   <Link key={c.id} href={`/courses/${c.id}`} className="group block rounded-2xl bg-white p-5 text-navy-900 shadow-xl transition-transform hover:-translate-y-0.5">
                     <div className="flex items-start gap-4">
@@ -127,7 +126,7 @@ export default function CourseFinder({ courses, programs }: { courses: CourseOut
                         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                           <span className={`rounded-full px-2 py-0.5 font-semibold ring-1 ${LEVEL_STYLES[c.level]}`}>{c.level}</span>
                           <span className="flex items-center gap-1 text-slate-500"><IconClock className="h-3.5 w-3.5" /> {c.hours} hrs · {c.lessonCount} lessons</span>
-                          <span className="font-semibold text-slate-700">{priceShort(p?.price ?? 0)}</span>
+                          <span className="font-semibold text-slate-700">{priceShort(c.price)}</span>
                         </div>
                         {reasons.length > 0 && (
                           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-emerald-700">
