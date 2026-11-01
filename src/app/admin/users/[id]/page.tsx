@@ -172,13 +172,13 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
                       </select>
                     </label>
                     <label className="text-xs font-semibold text-slate-600">Amount received (₹)
-                      <input name="amount" type="number" step="0.01" min="0" defaultValue={r.record?.amount ?? r.amountDue} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      <input name="amount" type="number" step="0.01" min="0" max="100000" defaultValue={r.record?.amount ?? r.amountDue} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                     </label>
                     <label className="text-xs font-semibold text-slate-600">Transaction reference
-                      <input name="reference" defaultValue={r.record?.reference} maxLength={60} placeholder="UPI / UTR number" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      <input name="reference" defaultValue={r.record?.reference} minLength={4} maxLength={60} pattern="[A-Za-z0-9_\-\/ .]+" title="Letters, numbers, spaces and - / ." placeholder="UPI / UTR number" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                     </label>
                     <label className="text-xs font-semibold text-slate-600">Payment date
-                      <input name="paidAt" type="date" defaultValue={r.record?.paidAt?.slice(0, 10) ?? today} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      <input name="paidAt" type="date" min="2024-01-01" max={today} defaultValue={r.record?.paidAt?.slice(0, 10) ?? today} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                     </label>
                   </div>
                   <button className="btn-primary mt-3 py-2 text-sm">Save payment</button>

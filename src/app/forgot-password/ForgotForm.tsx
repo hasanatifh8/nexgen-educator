@@ -38,7 +38,7 @@ export default function ForgotForm() {
       <div>
         <label htmlFor="email" className="block text-sm font-semibold text-navy-900">Email</label>
         <input
-          id="email" name="email" type="email" autoComplete="email" required defaultValue={state.email} placeholder="you@example.com"
+          id="email" name="email" type="email" autoComplete="email" required maxLength={254} defaultValue={state.email} placeholder="you@example.com"
           className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-navy-900 outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-sky-100"
         />
       </div>

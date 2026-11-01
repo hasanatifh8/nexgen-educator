@@ -1,3 +1,5 @@
+import { LIMITS, isEmail, nameError } from "@/lib/validation";
+
 export const ROLES = [
   "Classroom Teacher",
   "School Leader / Administrator",
@@ -36,18 +38,19 @@ export const PASSWORD_RULES = [
   { label: "One special character", test: (p: string) => /[^a-zA-Z0-9]/.test(p) },
 ];
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 /** Shared by the client (instant feedback) and the server (source of truth). */
 export function validateRegistration(f: RegisterFields): FieldErrors {
   const e: FieldErrors = {};
-  if (f.firstName.trim().length < 2) e.firstName = "Enter your first name.";
-  if (f.lastName.trim().length < 1) e.lastName = "Enter your last name.";
-  if (!EMAIL_RE.test(f.email.trim())) e.email = "Enter a valid email address.";
+  const first = nameError(f.firstName, "first name", { min: 2 });
+  if (first) e.firstName = first;
+  const last = nameError(f.lastName, "last name");
+  if (last) e.lastName = last;
+  if (!isEmail(f.email.trim())) e.email = "Enter a valid email address, like name@example.com.";
   if (!ROLES.includes(f.role as (typeof ROLES)[number])) e.role = "Select your role.";
   if (f.institution.length > 120) e.institution = "Keep this under 120 characters.";
   const failed = PASSWORD_RULES.filter((r) => !r.test(f.password));
   if (failed.length) e.password = `Password needs: ${failed.map((r) => r.label.toLowerCase()).join(", ")}.`;
+  else if (f.password.length > LIMITS.password) e.password = `Keep your password under ${LIMITS.password} characters.`;
   if (f.confirmPassword !== f.password) e.confirmPassword = "Passwords don’t match.";
   if (!f.terms) e.terms = "You must accept the Terms of Service and Privacy Policy.";
   return e;

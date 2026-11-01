@@ -261,10 +261,17 @@ export async function savePaymentAction(fd: FormData) {
   const amount = amountRaw ? Number(amountRaw) : undefined;
   const reference = str(fd, "reference").slice(0, 60) || undefined;
   const paidOn = str(fd, "paidAt");
-  if (amount !== undefined && (!Number.isFinite(amount) || amount < 0 || amount > 1_000_000)) back("Enter the amount received in rupees.");
-  if (paidOn && !/^\d{4}-\d{2}-\d{2}$/.test(paidOn)) back("Enter a valid payment date.");
-
   const paid = status === "paid";
+  if (paid && (amount === undefined || !Number.isFinite(amount) || amount <= 0 || amount > 100_000 || Math.round(amount * 100) !== amount * 100))
+    back("Enter the amount received in rupees (up to ₹1,00,000, at most 2 decimals).");
+  if (paid && reference && !/^[\w\-/ .]{4,60}$/.test(reference)) back("The transaction reference can only contain letters, numbers, spaces and - / . (4–60 characters).");
+  if (paid && paidOn) {
+    const d = new Date(`${paidOn}T12:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(paidOn) || Number.isNaN(d.getTime())) back("Enter a valid payment date.");
+    if (d.getTime() > Date.now() + 24 * 60 * 60 * 1000) back("The payment date can’t be in the future.");
+    if (d.getUTCFullYear() < 2024) back("Check the payment date — it looks too old.");
+  }
+
   const paidAt = paid ? (paidOn ? new Date(`${paidOn}T12:00:00Z`) : new Date()).toISOString() : undefined;
   await setPayment(userId, programId, { status, ...(paid ? { amount, reference, paidAt } : {}), updatedAt: new Date().toISOString() });
 

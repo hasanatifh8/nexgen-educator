@@ -4,6 +4,7 @@ import { startTransition, useActionState, useRef, useState, type FormEvent } fro
 import { submitEnquiry, type EnquiryState } from "@/app/actions/enquiry";
 import { CALL_TIMES } from "@/lib/enquiryOptions";
 import { IconCheck, IconPhone, IconX } from "./Icons";
+import { LIMITS, isEmail, nameError } from "@/lib/validation";
 
 type Props = { courseId: string; courseTitle: string; source?: "home" | "course-page"; className?: string; label?: string };
 
@@ -29,9 +30,10 @@ function EnquiryForm({ courseId, courseTitle, source, onClose }: Omit<Props, "cl
   const onSubmit = (ev: FormEvent) => {
     ev.preventDefault();
     const e: Record<string, string> = {};
-    if (v.name.trim().length < 2) e.name = "Please enter your name.";
+    const nameErr = nameError(v.name, "name", { min: 2, max: LIMITS.fullName });
+    if (nameErr) e.name = nameErr;
     if (!/^(\+91)?[6-9]\d{9}$/.test(v.phone.replace(/[\s-]/g, ""))) e.phone = "Enter a valid 10-digit Indian mobile number.";
-    if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) e.email = "Enter a valid email or leave it blank.";
+    if (v.email && !isEmail(v.email.trim())) e.email = "Enter a valid email or leave it blank.";
     if (!v.consent) e.consent = "Please allow us to call you.";
     setErrors(e);
     if (Object.keys(e).length) return;
@@ -66,7 +68,7 @@ function EnquiryForm({ courseId, courseTitle, source, onClose }: Omit<Props, "cl
 
       <div>
         <label htmlFor="enq-name" className="block text-sm font-semibold text-navy-900">Your name</label>
-        <input id="enq-name" autoComplete="name" value={v.name} onChange={(e) => set("name", e.target.value)} className={inputCls(!!errors.name)} />
+        <input id="enq-name" autoComplete="name" maxLength={80} value={v.name} onChange={(e) => set("name", e.target.value)} className={inputCls(!!errors.name)} />
         {errors.name && <p className="mt-1 text-xs font-medium text-red-600">{errors.name}</p>}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">

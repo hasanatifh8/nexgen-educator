@@ -93,15 +93,15 @@ export default function RegisterForm() {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field id="firstName" label="First name" error={errors.firstName}>
-          <input id="firstName" name="firstName" autoComplete="given-name" defaultValue={v.firstName} className={inputClass(!!errors.firstName)} {...aria("firstName")} />
+          <input id="firstName" name="firstName" autoComplete="given-name" maxLength={50} defaultValue={v.firstName} className={inputClass(!!errors.firstName)} {...aria("firstName")} />
         </Field>
         <Field id="lastName" label="Last name" error={errors.lastName}>
-          <input id="lastName" name="lastName" autoComplete="family-name" defaultValue={v.lastName} className={inputClass(!!errors.lastName)} {...aria("lastName")} />
+          <input id="lastName" name="lastName" autoComplete="family-name" maxLength={50} defaultValue={v.lastName} className={inputClass(!!errors.lastName)} {...aria("lastName")} />
         </Field>
       </div>
 
       <Field id="email" label="Email" error={errors.email}>
-        <input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" defaultValue={v.email} className={inputClass(!!errors.email)} {...aria("email")} />
+        <input id="email" name="email" type="email" autoComplete="email" maxLength={254} placeholder="you@example.com" defaultValue={v.email} className={inputClass(!!errors.email)} {...aria("email")} />
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -112,7 +112,7 @@ export default function RegisterForm() {
           </select>
         </Field>
         <Field id="institution" label={<>School / institution <span className="font-normal text-slate-400">(optional)</span></>} error={errors.institution}>
-          <input id="institution" name="institution" autoComplete="organization" defaultValue={v.institution} className={inputClass(!!errors.institution)} {...aria("institution")} />
+          <input id="institution" name="institution" autoComplete="organization" maxLength={120} defaultValue={v.institution} className={inputClass(!!errors.institution)} {...aria("institution")} />
         </Field>
       </div>
 
@@ -120,6 +120,7 @@ export default function RegisterForm() {
         <div className="relative">
           <input
             id="password"
+            maxLength={128}
             name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"
@@ -152,6 +153,7 @@ export default function RegisterForm() {
       <Field id="confirmPassword" label="Confirm password" error={errors.confirmPassword}>
         <input
           id="confirmPassword"
+          maxLength={128}
           name="confirmPassword"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"

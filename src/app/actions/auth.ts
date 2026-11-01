@@ -6,6 +6,7 @@ import { onboardingPath, safeNextPath } from "@/lib/sessionToken";
 import { isAdminEmail } from "@/lib/dal";
 import { clear, clientIp, hit } from "@/lib/rateLimit";
 import { verifyCredentials } from "@/lib/users";
+import { LIMITS } from "@/lib/validation";
 
 export type LoginState = { error?: string; email?: string };
 
@@ -13,6 +14,8 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   if (!email || !password) return { error: "Enter your email and password.", email };
+  // Over-long input can't belong to a real account; rejecting it early also keeps password hashing cheap.
+  if (email.length > LIMITS.email || password.length > LIMITS.password) return { error: "Incorrect email or password.", email: email.slice(0, LIMITS.email) };
 
   // 5 tries per account and 20 per IP every 15 minutes slows password guessing to a crawl.
   const accountKey = `login:${email.toLowerCase()}`;

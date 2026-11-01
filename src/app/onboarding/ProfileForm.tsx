@@ -4,6 +4,7 @@ import { startTransition, useActionState, useEffect, useRef, useState, type Drag
 import { IconCheck, IconShield, IconX } from "@/components/Icons";
 import { MAX_UPLOAD_BYTES as MAX, MAX_UPLOAD_LABEL } from "@/lib/uploadLimits";
 import { saveProfileAction } from "./actions";
+import { placeError } from "@/lib/validation";
 import { QUALIFICATIONS, STATES, type ProfileState } from "./constants";
 
 type Existing = {
@@ -160,7 +161,8 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
     const e: Errors = {};
     const phone = v.phone.replace(/[\s-]/g, "");
     if (!/^(\+91)?[6-9]\d{9}$/.test(phone)) e.phone = "Enter a valid 10-digit Indian mobile number (starting 6–9).";
-    if (v.city.trim().length < 2) e.city = "Enter your city.";
+    const cityErr = placeError(v.city, "city");
+    if (cityErr) e.city = cityErr;
     if (!v.state) e.state = "Select your state.";
     if (!v.qualification) e.qualification = "Select your highest qualification.";
     const exp = Number(v.experienceYears);
@@ -223,7 +225,7 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
               onChange={(e) => set("experienceYears", e.target.value)} className={inputCls(!!errors.experienceYears)} />
           </Field>
           <Field id="city" label="City" error={errors.city}>
-            <input id="city" autoComplete="address-level2" value={v.city} onChange={(e) => set("city", e.target.value)} className={inputCls(!!errors.city)} />
+            <input id="city" autoComplete="address-level2" maxLength={60} value={v.city} onChange={(e) => set("city", e.target.value)} className={inputCls(!!errors.city)} />
           </Field>
           <Field id="state" label="State / UT" error={errors.state}>
             <select id="state" value={v.state} onChange={(e) => set("state", e.target.value)} className={inputCls(!!errors.state)}>

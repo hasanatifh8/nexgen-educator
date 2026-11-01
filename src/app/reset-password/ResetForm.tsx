@@ -30,7 +30,7 @@ export default function ResetForm({ token, email }: { token: string; email: stri
             {show ? "Hide" : "Show"}
           </button>
         </div>
-        <input id="password" name="password" type={show ? "text" : "password"} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} />
+        <input id="password" name="password" type={show ? "text" : "password"} autoComplete="new-password" maxLength={128} value={password} onChange={(e) => setPassword(e.target.value)} className={input} />
         <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
           {PASSWORD_RULES.map((r) => (
             <li key={r.label} className={`flex items-center gap-1.5 text-xs ${r.test(password) ? "text-emerald-600" : "text-slate-400"}`}>
@@ -41,7 +41,7 @@ export default function ResetForm({ token, email }: { token: string; email: stri
       </div>
       <div>
         <label htmlFor="confirmPassword" className="block text-sm font-semibold text-navy-900">Confirm new password</label>
-        <input id="confirmPassword" name="confirmPassword" type={show ? "text" : "password"} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={input} />
+        <input id="confirmPassword" name="confirmPassword" type={show ? "text" : "password"} autoComplete="new-password" maxLength={128} value={confirm} onChange={(e) => setConfirm(e.target.value)} className={input} />
         {confirm && confirm !== password && <p className="mt-1.5 text-xs font-medium text-red-600">Passwords don’t match.</p>}
       </div>
       <button type="submit" disabled={pending || !allOk} className="btn-primary w-full py-3 text-base">

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/dal";
 import { safeNextPath } from "@/lib/sessionToken";
 import { deleteUpload, saveUpload } from "@/lib/uploads";
 import { findUserById, saveProfile } from "@/lib/users";
+import { placeError } from "@/lib/validation";
 import { QUALIFICATIONS, STATES, type ProfileState } from "./constants";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -30,7 +31,8 @@ export async function saveProfileAction(_prev: ProfileState, fd: FormData): Prom
 
   const e: Record<string, string> = {};
   if (!/^(\+91)?[6-9]\d{9}$/.test(phone)) e.phone = "Enter a valid 10-digit Indian mobile number.";
-  if (city.length < 2 || city.length > 80) e.city = "Enter your city.";
+  const cityErr = placeError(city, "city");
+  if (cityErr) e.city = cityErr;
   if (!STATES.includes(state as (typeof STATES)[number])) e.state = "Select your state.";
   if (!QUALIFICATIONS.includes(qualification as (typeof QUALIFICATIONS)[number])) e.qualification = "Select your highest qualification.";
   if (!Number.isInteger(experienceYears) || experienceYears < 0 || experienceYears > 50) e.experienceYears = "Enter years of experience (0–50).";

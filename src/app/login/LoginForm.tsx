@@ -45,14 +45,14 @@ export default function LoginForm() {
         )}
         <div>
           <label htmlFor="email" className="block text-sm font-semibold text-navy-900">Email</label>
-          <input id="email" name="email" type="email" autoComplete="email" required defaultValue={state.email} placeholder="you@example.com" className={input} />
+          <input id="email" name="email" type="email" autoComplete="email" required maxLength={254} defaultValue={state.email} placeholder="you@example.com" className={input} />
         </div>
         <div>
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-sm font-semibold text-navy-900">Password</label>
             <Link href="/forgot-password" className="text-xs font-semibold text-brand-ink hover:underline">Forgot password?</Link>
           </div>
-          <input id="password" name="password" type="password" autoComplete="current-password" required className={input} />
+          <input id="password" name="password" type="password" autoComplete="current-password" required maxLength={128} className={input} />
         </div>
         <button type="submit" disabled={pending} className="btn-primary w-full py-3 text-base">
           {pending ? "Signing in…" : <>Log In <IconArrowRight className="h-4 w-4" /></>}
