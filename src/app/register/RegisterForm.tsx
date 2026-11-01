@@ -100,8 +100,8 @@ export default function RegisterForm() {
         </Field>
       </div>
 
-      <Field id="email" label="Work email" error={errors.email}>
-        <input id="email" name="email" type="email" autoComplete="email" placeholder="you@school.edu" defaultValue={v.email} className={inputClass(!!errors.email)} {...aria("email")} />
+      <Field id="email" label="Email" error={errors.email}>
+        <input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" defaultValue={v.email} className={inputClass(!!errors.email)} {...aria("email")} />
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">

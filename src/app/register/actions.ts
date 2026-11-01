@@ -1,9 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { isAdminEmail } from "@/lib/dal";
-import { createSession } from "@/lib/session";
-import { onboardingPath, safeNextPath } from "@/lib/sessionToken";
+import { welcomeEmail } from "@/lib/emails";
+import { appUrl, sendMail } from "@/lib/mailer";
+import { safeNextPath } from "@/lib/sessionToken";
 import { createUser } from "@/lib/users";
 import { readRegisterForm, validateRegistration, type RegisterState } from "./validation";
 
@@ -43,9 +43,10 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
     };
   }
 
-  await createSession(user.id);
+  const base = await appUrl();
+  if (base) await sendMail({ to: user.email, ...welcomeEmail(user.firstName, base) });
+
+  // Confirm the account, then ask the learner to log in; login routes them to profile completion.
   const next = safeNextPath(formData.get("next"));
-  if (isAdminEmail(user.email)) redirect(next ?? "/admin");
-  // Next step for every new learner: complete the profile (ID + CV).
-  redirect(onboardingPath(next));
+  redirect(`/login?registered=1${next ? `&next=${encodeURIComponent(next)}` : ""}`);
 }

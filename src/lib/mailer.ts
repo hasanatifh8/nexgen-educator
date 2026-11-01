@@ -12,12 +12,17 @@ export async function sendMail(mail: Mail) {
   const from = process.env.EMAIL_FROM;
 
   if (key && from) {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html }),
-    });
-    if (!res.ok) console.error(`[mailer] Resend failed (${res.status}): ${await res.text()}`);
+    // Never throws: a failed email must not undo the registration or admin action that triggered it.
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html }),
+      });
+      if (!res.ok) console.error(`[mailer] Resend failed (${res.status}): ${await res.text()}`);
+    } catch (e) {
+      console.error("[mailer] Resend request failed:", e);
+    }
     return;
   }
 

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { PASSWORD_RULES } from "@/app/register/validation";
+import { passwordResetEmail } from "@/lib/emails";
 import { appUrl, sendMail } from "@/lib/mailer";
 import { clientIp, hit } from "@/lib/rateLimit";
 import { createPasswordResetToken, resetPasswordWithToken } from "@/lib/users";
@@ -20,12 +21,7 @@ export async function requestPasswordReset(_prev: ForgotState, formData: FormDat
   const base = await appUrl();
   if (result && base) {
     const link = `${base}/reset-password?token=${result.token}`;
-    await sendMail({
-      to: result.user.email,
-      subject: "Reset your NextGen Educator password",
-      text: `Hi ${result.user.firstName},\n\nUse this link to set a new password (valid for 30 minutes):\n${link}\n\nIf you didn't request this, you can ignore this email.`,
-      html: `<p>Hi ${result.user.firstName},</p><p>Use the button below to set a new password. This link is valid for 30 minutes.</p><p><a href="${link}" style="background:#f97316;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Reset password</a></p><p style="color:#64748b">If you didn't request this, you can ignore this email.</p>`,
-    });
+    await sendMail({ to: result.user.email, ...passwordResetEmail(result.user.firstName, link) });
   } else if (result) {
     console.error("[password-reset] APP_URL is not set; cannot build a reset link.");
   }

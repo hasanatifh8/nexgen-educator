@@ -11,6 +11,8 @@ import { saveSettings } from "@/lib/settings";
 import { normalizeSiteUrl, type SiteSettings } from "@/lib/siteSettings";
 import { findUserById, setAssignedCourses, setVerification } from "@/lib/users";
 import { getCatalog } from "@/lib/catalogStore";
+import { courseApprovedEmail } from "@/lib/emails";
+import { appUrl, sendMail } from "@/lib/mailer";
 import { ENQUIRY_STATUSES, updateEnquiry, type EnquiryStatus } from "@/lib/enquiries";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string> };
@@ -213,11 +215,19 @@ export async function saveExamAction(_prev: FormState, fd: FormData): Promise<Fo
 export async function saveAssignmentsAction(fd: FormData) {
   await assertAdmin();
   const userId = str(fd, "userId");
-  if (!(await findUserById(userId))) redirect("/admin/users");
+  const before = await findUserById(userId);
+  if (!before) redirect("/admin/users");
   const { courses } = await getCatalog();
   const valid = new Set(courses.map((c) => c.id));
   const chosen = fd.getAll("courses").map(String).filter((id) => valid.has(id));
   await setAssignedCourses(userId, chosen);
+
+  // Tell the learner about newly approved courses only, not ones they already had.
+  const added = courses.filter((c) => chosen.includes(c.id) && !before.assignedCourses.includes(c.id));
+  const base = await appUrl();
+  if (added.length && base) {
+    await sendMail({ to: before.email, ...courseApprovedEmail(before.firstName, base, added) });
+  }
   redirect(`/admin/users/${userId}?saved=assignments`);
 }
 

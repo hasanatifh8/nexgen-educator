@@ -14,6 +14,7 @@ export default function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") ?? "";
   const justReset = params.get("reset") === "1";
+  const justRegistered = params.get("registered") === "1";
 
   return (
     <>
@@ -22,7 +23,15 @@ export default function LoginForm() {
           Password updated. Log in with your new password.
         </p>
       )}
-      {next && !justReset && !state.error && (
+      {justRegistered && !state.error && (
+        <div role="status" className="mb-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
+          <p className="font-semibold">Your account has been created successfully.</p>
+          <p className="mt-1">
+            Please log in to complete your educator profile. Once our team verifies it, we will assign your courses. We have also sent a confirmation to your email.
+          </p>
+        </div>
+      )}
+      {next && !justReset && !justRegistered && !state.error && (
         <p className="mb-5 rounded-lg bg-sky-50 px-4 py-3 text-sm text-sky-800 ring-1 ring-sky-100">
           Please log in or create a free account to access courses and certifications.
         </p>
@@ -36,7 +45,7 @@ export default function LoginForm() {
         )}
         <div>
           <label htmlFor="email" className="block text-sm font-semibold text-navy-900">Email</label>
-          <input id="email" name="email" type="email" autoComplete="email" required defaultValue={state.email} placeholder="you@school.edu" className={input} />
+          <input id="email" name="email" type="email" autoComplete="email" required defaultValue={state.email} placeholder="you@example.com" className={input} />
         </div>
         <div>
           <div className="flex items-center justify-between">
