@@ -15,7 +15,7 @@ export async function requestAccessAction(fd: FormData) {
   if (!user) redirect(`/register?next=${encodeURIComponent(`/courses/${courseId}`)}`);
   if (!user.profileComplete) redirect(`/onboarding?next=${encodeURIComponent(`/courses/${courseId}`)}`);
   const course = await getCourse(courseId);
-  if (!course) redirect("/courses");
+  if (!course || course.disabled) redirect("/courses");
   if (user.assignedCourses.includes(courseId)) redirect(`/courses/${courseId}`);
 
   const before = await findUserById(user.id);

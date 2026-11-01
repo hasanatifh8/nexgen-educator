@@ -8,7 +8,7 @@ export default function PageHeader({ crumb, title, children }: { crumb: string; 
       <div className="absolute -top-32 -right-24 h-80 w-80 rounded-full bg-brand/30 blur-3xl" aria-hidden="true" />
       <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <nav aria-label="Breadcrumb" className="text-sm text-slate-400">
-          <Link href="/" className="hover:text-white">Home</Link>
+          <Link href="/" className="-my-2 inline-block py-2 hover:text-white">Home</Link>
           <span className="mx-2">/</span>
           <span className="text-slate-200">{crumb}</span>
         </nav>

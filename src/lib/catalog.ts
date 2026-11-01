@@ -59,6 +59,8 @@ export type Course = {
   programId: string;
   /** Course fee in rupees before GST; 0 = free. */
   price: number;
+  /** Hidden from the public site and can't be requested; learners already assigned keep access. */
+  disabled?: boolean;
   /** Longer “About this course” text (supports the rich-text format). */
   overview: string;
   outcomes: string[];
@@ -96,6 +98,8 @@ export const toPublicProgram = ({ exam, ...p }: Program): PublicProgram => ({
 });
 
 export const coursesFor = <C extends { programId: string }>(courses: C[], programId: string) => courses.filter((c) => c.programId === programId);
+/** Courses currently offered (not disabled by an admin). */
+export const activeCourses = <C extends { disabled?: boolean }>(courses: C[]) => courses.filter((c) => !c.disabled);
 export const programHours = (courses: { programId: string; hours: number }[], programId: string) =>
   coursesFor(courses, programId).reduce((h, c) => h + c.hours, 0);
 

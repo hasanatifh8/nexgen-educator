@@ -77,7 +77,7 @@ async function LessonView({ params }: { params: P["params"] }) {
       {/* Course bar */}
       <div className="sticky top-18 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Link href={`/courses/${course.id}`} className="min-w-0 flex-1 truncate text-sm font-semibold text-navy-900 hover:text-brand-ink">
+          <Link href={`/courses/${course.id}`} className="-my-2 min-w-0 flex-1 truncate py-2.5 text-sm font-semibold text-navy-900 hover:text-brand-ink">
             ← {course.title}
           </Link>
           <div className="hidden w-56 items-center gap-3 sm:flex">

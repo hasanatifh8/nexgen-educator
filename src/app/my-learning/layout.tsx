@@ -5,7 +5,7 @@ import { logout } from "@/app/actions/auth";
 import { IconArrowRight, IconLogout, IconShield } from "@/components/Icons";
 import Logo from "@/components/Logo";
 import { getCurrentUser } from "@/lib/dal";
-import PortalNav from "./PortalNav";
+import PortalNav, { PortalTabBar } from "./PortalNav";
 
 export const metadata: Metadata = { title: "My Learning — NextGen Educator" };
 
@@ -14,16 +14,16 @@ export default function PortalLayout({ children }: LayoutProps<"/my-learning">) 
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-slate-100 lg:flex-row">
       <aside className="bg-navy-950 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col">
-        <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 lg:px-5 lg:pt-6 lg:pb-6">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 lg:px-5 lg:pt-6 lg:pb-6">
           <Logo light />
           <form action={logout} className="lg:hidden">
-            <button type="submit" className="grid h-9 w-9 place-items-center rounded-lg text-slate-300 hover:bg-white/10" aria-label="Log out">
+            <button type="submit" className="grid h-11 w-11 place-items-center rounded-lg text-slate-300 hover:bg-white/10" aria-label="Log out">
               <IconLogout className="h-5 w-5" />
             </button>
           </form>
         </div>
-        <div className="px-3 pb-3 lg:flex-1 lg:px-3">
-          <Suspense fallback={<div className="h-11 rounded-xl bg-white/5 lg:h-72" />}>
+        <div className="hidden px-3 pb-3 lg:block lg:flex-1">
+          <Suspense fallback={<div className="h-72 rounded-xl bg-white/5" />}>
             <PortalNav />
           </Suspense>
         </div>
@@ -37,12 +37,15 @@ export default function PortalLayout({ children }: LayoutProps<"/my-learning">) 
           </Suspense>
         </div>
       </aside>
-      <main className="min-w-0 flex-1">
+      <main className="min-w-0 flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">{children}</div>
         <p className="flex items-center justify-center gap-2 px-4 pb-8 text-xs text-slate-500">
           <IconShield className="h-4 w-4" /> Your documents are private — only you and our verification team can see them.
         </p>
       </main>
+      <Suspense fallback={null}>
+        <PortalTabBar />
+      </Suspense>
     </div>
   );
 }

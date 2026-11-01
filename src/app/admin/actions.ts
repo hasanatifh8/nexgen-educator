@@ -3,7 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { CATEGORIES, LEVELS, type Category, type ExamQuestion, type Level } from "@/lib/catalog";
-import { deleteCourse, deleteProgram, getCourse, getProgram, saveCurriculum, saveExam, saveLesson, upsertCourse, upsertProgram, type CurriculumInput } from "@/lib/catalogStore";
+import { deleteCourse, setCourseDisabled, deleteProgram, getCourse, getProgram, saveCurriculum, saveExam, saveLesson, upsertCourse, upsertProgram, type CurriculumInput } from "@/lib/catalogStore";
 import { validateBlocks } from "@/lib/contentValidation";
 import { templateById } from "@/lib/lessonTemplates";
 import { getCurrentUser } from "@/lib/dal";
@@ -96,6 +96,14 @@ export async function saveCourseAction(_prev: FormState, fd: FormData): Promise<
   if (!saved) return { error: "That course no longer exists." };
   // New courses go straight to the curriculum builder.
   redirect(id ? `/admin/courses?saved=${encodeURIComponent(saved.title)}` : `/admin/courses/${saved.id}/content?created=1`);
+}
+
+export async function setCourseDisabledAction(fd: FormData) {
+  await assertAdmin();
+  const disable = str(fd, "disabled") === "1";
+  const course = await setCourseDisabled(str(fd, "id"), disable);
+  if (!course) redirect("/admin/courses");
+  redirect(`/admin/courses?${disable ? "disabled" : "enabled"}=${encodeURIComponent(course.title)}`);
 }
 
 export async function deleteCourseAction(fd: FormData) {

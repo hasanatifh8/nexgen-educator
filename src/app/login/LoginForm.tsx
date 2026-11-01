@@ -50,7 +50,7 @@ export default function LoginForm() {
         <div>
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-sm font-semibold text-navy-900">Password</label>
-            <Link href="/forgot-password" className="text-xs font-semibold text-brand-ink hover:underline">Forgot password?</Link>
+            <Link href="/forgot-password" className="-my-2 py-2 text-sm font-semibold text-brand-ink hover:underline sm:text-xs">Forgot password?</Link>
           </div>
           <input id="password" name="password" type="password" autoComplete="current-password" required maxLength={128} className={input} />
         </div>

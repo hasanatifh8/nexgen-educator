@@ -29,6 +29,8 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
   const course = courses.find((c) => c.id === courseId);
   const program = course && programs.find((p) => p.id === course.programId);
   if (!course || !program) notFound();
+  // Disabled courses stay open only to admins and learners who were already assigned them.
+  if (course.disabled && !(user?.isAdmin || user?.assignedCourses.includes(course.id))) notFound();
 
   const here = `/courses/${course.id}`;
   const unlocked = !!user && canAccessCourse(user, course.id);
@@ -49,8 +51,8 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
         <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8 lg:py-16">
           <div>
             <nav aria-label="Breadcrumb" className="text-sm text-slate-400">
-              <Link href="/" className="hover:text-white">Home</Link><span className="mx-2">/</span>
-              <Link href="/courses" className="hover:text-white">Courses</Link><span className="mx-2">/</span>
+              <Link href="/" className="-my-2 inline-block py-2 hover:text-white">Home</Link><span className="mx-2">/</span>
+              <Link href="/courses" className="-my-2 inline-block py-2 hover:text-white">Courses</Link><span className="mx-2">/</span>
               <span className="text-slate-200">{course.title}</span>
             </nav>
             <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-semibold">
@@ -151,7 +153,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                 )}
                 <div className="mt-5 border-t border-slate-100 pt-4 text-center">
                   <p className="text-xs text-slate-500">Have questions about fees or eligibility?</p>
-                  <EnquiryDialog courseId={course.id} courseTitle={course.title} source="course-page" label="Talk to an advisor" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-ink hover:underline" />
+                  <EnquiryDialog courseId={course.id} courseTitle={course.title} source="course-page" label="Talk to an advisor" className="mt-1 inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-brand-ink hover:underline" />
                 </div>
               </>
             )}
@@ -271,7 +273,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
             <p className="mt-1 font-display text-lg font-semibold text-navy-900">{program.title}</p>
             <p className="mt-2 text-sm text-slate-600">
               {program.exam.questions.length
-                ? `Finish ${courses.filter((c) => c.programId === program.id).length > 1 ? "every course in this program" : "this course"}, then pass a ${program.exam.questions.length}-question, ${program.exam.minutes}-minute exam to earn a QR-verified certificate.`
+                ? `Finish ${courses.filter((c) => c.programId === program.id && !c.disabled).length > 1 ? "every course in this program" : "this course"}, then pass a ${program.exam.questions.length}-question, ${program.exam.minutes}-minute exam to earn a QR-verified certificate.`
                 : "The certification exam for this program is coming soon."}
             </p>
             {certified ? (

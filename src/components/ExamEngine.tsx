@@ -222,16 +222,12 @@ export default function ExamEngine({ settings = DEFAULT_SETTINGS }: { settings?:
               </div>
 
               {/* Tracker */}
-              <div className="mt-5 flex gap-2" aria-hidden="true">
+              <div className="mt-2 flex gap-2" aria-hidden="true">
                 {QUESTIONS.map((_, i) => (
-                  <button
-                    key={i}
-                    tabIndex={-1}
-                    onClick={() => setCurrent(i)}
-                    className={`h-2 flex-1 rounded-full transition-colors ${
-                      i === current ? "bg-brand" : answers[i] !== null ? "bg-brand-teal/50" : "bg-slate-200"
-                    }`}
-                  />
+                  // The bar is thin, but the whole 40px-tall strip around it is tappable.
+                  <button key={i} tabIndex={-1} onClick={() => setCurrent(i)} className="flex-1 py-4">
+                    <span className={`block h-2 rounded-full transition-colors ${i === current ? "bg-brand" : answers[i] !== null ? "bg-brand-teal/50" : "bg-slate-200"}`} />
+                  </button>
                 ))}
               </div>
 

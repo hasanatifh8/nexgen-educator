@@ -43,6 +43,7 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
       id: c.id,
       title: c.title,
       price: c.price,
+      disabled: c.disabled,
       lessons: c.modules.reduce((n, m) => n + m.lessons.length, 0),
       done: (user.progress[c.id] ?? []).length,
     })),

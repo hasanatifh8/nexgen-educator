@@ -30,7 +30,7 @@ export default function CourseExplorer({ courses, programs }: { courses: CourseO
           <div role="tablist" aria-label="Course categories" className="flex gap-2 overflow-x-auto pb-1">
             {TABS.map((t) => (
               <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all ${tab === t ? "bg-navy-900 text-white shadow-md" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:text-navy-900"}`}>
+                className={`min-h-10 shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all ${tab === t ? "bg-navy-900 text-white shadow-md" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:text-navy-900"}`}>
                 {t}
               </button>
             ))}

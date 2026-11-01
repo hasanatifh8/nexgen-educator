@@ -5,7 +5,7 @@ import { IconBadge, IconCheck, IconClock, IconTimer } from "@/components/Icons";
 import CertificateDownload from "@/components/CertificateDownload";
 import LinkedInAddButton from "@/components/LinkedInAddButton";
 import { canAccessCourse, examEligibility, isCourseComplete } from "@/lib/access";
-import { coursesFor } from "@/lib/catalog";
+import { activeCourses, coursesFor } from "@/lib/catalog";
 import { formatCertDate } from "@/lib/certificate/design";
 import { fmtDate } from "@/lib/learner";
 import { CATEGORY_ACCENT } from "@/lib/styles";
@@ -22,7 +22,7 @@ async function Courses() {
   const programTitle = (id: string) => programs.find((p) => p.id === id)?.title ?? "";
   const myPrograms = programs
     .map((p) => {
-      const inProgram = coursesFor(courses, p.id);
+      const inProgram = activeCourses(coursesFor(courses, p.id));
       return {
         p,
         cert: user.certificates.find((c) => c.programId === p.id),

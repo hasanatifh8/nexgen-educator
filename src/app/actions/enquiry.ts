@@ -29,7 +29,7 @@ export async function submitEnquiry(_prev: EnquiryState, fd: FormData): Promise<
   if (message.length > 500) e.message = "Keep your message under 500 characters.";
   if (fd.get("consent") !== "on") e.consent = "Please allow us to call you.";
   const course = await getCourse(courseId);
-  if (!course) return { error: "This course is no longer available." };
+  if (!course || course.disabled) return { error: "This course is no longer available." };
   if (Object.keys(e).length) return { error: "Please check the highlighted fields.", fieldErrors: e };
 
   if ((await recentFromPhone(phone)) >= 3) {

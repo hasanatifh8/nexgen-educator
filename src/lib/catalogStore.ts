@@ -27,7 +27,7 @@ function withContent(c: Partial<Course> & Pick<Course, "id">): Course {
 function withPricing(programs: Program[], courses: (Partial<Course> & Pick<Course, "id" | "programId">)[]): Catalog {
   const priced = courses.map((c) => withContent({ ...c, price: c.price ?? programs.find((p) => p.id === c.programId)?.price ?? 0 }));
   return {
-    programs: programs.map((p) => ({ ...p, price: priced.filter((c) => c.programId === p.id).reduce((n, c) => n + c.price, 0) })),
+    programs: programs.map((p) => ({ ...p, price: priced.filter((c) => c.programId === p.id && !c.disabled).reduce((n, c) => n + c.price, 0) })),
     courses: priced,
   };
 }
@@ -50,6 +50,16 @@ async function writeCatalog(catalog: Catalog) {
 
 /** Memoized per request. */
 export const getCatalog = cache(readCatalog);
+
+/**
+ * What the public site shows: disabled courses removed, and programs with no course on offer hidden.
+ * Memoized per request.
+ */
+export const getPublicCatalog = cache(async (): Promise<Catalog> => {
+  const { programs, courses } = await getCatalog();
+  const offered = courses.filter((c) => !c.disabled);
+  return { programs: programs.filter((p) => offered.some((c) => c.programId === p.id)), courses: offered };
+});
 
 export async function getProgram(id: string) {
   return (await getCatalog()).programs.find((p) => p.id === id);
@@ -111,6 +121,16 @@ export async function upsertCourse(input: CourseInput) {
   }
   await writeCatalog(catalog);
   return existing ?? catalog.courses.at(-1)!;
+}
+
+export async function setCourseDisabled(id: string, disabled: boolean) {
+  const catalog = await readCatalog();
+  const course = catalog.courses.find((c) => c.id === id);
+  if (!course) return null;
+  if (disabled) course.disabled = true;
+  else delete course.disabled;
+  await writeCatalog(catalog);
+  return course;
 }
 
 export async function deleteCourse(id: string) {

@@ -40,6 +40,35 @@ async function Payments() {
             <Link href="/courses" className="font-semibold text-brand-ink hover:underline">Browse courses</Link>
           </Empty>
         ) : (
+          <>
+            <ul className="space-y-3 sm:hidden">
+              {rows.map((r) => (
+                <li key={r.course.id} className="rounded-xl p-4 ring-1 ring-slate-200">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-navy-900">{r.course.title}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{r.program?.title}{r.assigned ? "" : " · requested"}</p>
+                    </div>
+                    <Pill tone={TONE[r.status]}>{PAYMENT_LABEL[r.status]}</Pill>
+                  </div>
+                  <div className="mt-3 flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
+                    <div>
+                      <p className="font-display text-xl font-bold text-navy-900">{formatINR(r.amountDue)}</p>
+                      <p className="text-xs text-slate-500">{formatINR(r.course.price)} + {formatINR(gstOn(r.course.price))} GST</p>
+                    </div>
+                    <div className="text-right text-xs text-slate-600">
+                      {r.status === "paid" ? (
+                        <>
+                          {r.record?.paidAt && <p>Paid {fmtDate(r.record.paidAt)}</p>}
+                          {r.record?.reference && <p className="font-mono">Ref: {r.record.reference}</p>}
+                        </>
+                      ) : r.status === "waived" ? <p>No payment needed</p> : <p>Awaiting payment</p>}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden sm:block">
           <div className="-mx-6 overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="border-y border-slate-100 bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
@@ -76,6 +105,8 @@ async function Payments() {
               </tbody>
             </table>
           </div>
+            </div>
+          </>
         )}
       </Panel>
 

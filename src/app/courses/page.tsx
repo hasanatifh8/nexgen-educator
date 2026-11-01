@@ -9,7 +9,7 @@ import { IconArrowRight, IconBadge, IconClock, IconShield } from "@/components/I
 import { connection } from "next/server";
 import { toCourseSummary, toPublicProgram } from "@/lib/catalog";
 import { canAccessCourse } from "@/lib/access";
-import { getCatalog } from "@/lib/catalogStore";
+import { getPublicCatalog } from "@/lib/catalogStore";
 import { getCurrentUser } from "@/lib/dal";
 import { courseProgress } from "@/components/learn/progress";
 
@@ -27,7 +27,7 @@ const highlights = [
 /** Public catalog: anyone can browse; buttons adapt to the viewer’s profile and assignments. */
 async function Catalog() {
   await connection(); // catalog changes from the admin portal must show immediately
-  const [user, { programs, courses }] = await Promise.all([getCurrentUser(), getCatalog()]);
+  const [user, { programs, courses }] = await Promise.all([getCurrentUser(), getPublicCatalog()]);
   return (
     <>
       <CourseCatalog

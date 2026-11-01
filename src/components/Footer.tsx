@@ -31,9 +31,9 @@ export default function Footer() {
             {columns.map((col) => (
               <div key={col.title}>
                 <h3 className="text-sm font-semibold text-white">{col.title}</h3>
-                <ul className="mt-4 space-y-3 text-sm">
+                <ul className="mt-3 text-sm sm:mt-4 sm:space-y-3">
                   {col.links.map(([label, href]) => (
-                    <li key={label}><Link href={href} className="transition-colors hover:text-brand">{label}</Link></li>
+                    <li key={label}><Link href={href} className="inline-flex min-h-10 items-center transition-colors hover:text-brand sm:min-h-0">{label}</Link></li>
                   ))}
                 </ul>
               </div>
@@ -51,11 +51,11 @@ export default function Footer() {
           </p>
           <div className="mt-6 flex flex-col gap-4 text-xs sm:flex-row sm:items-center sm:justify-between">
             <p>© {year} NextGen Educator. All rights reserved.</p>
-            <ul className="flex flex-wrap gap-6">
-              <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-white">Cookie Settings</a></li>
-              <li><a href="#" className="hover:text-white">Accessibility</a></li>
+            <ul className="flex flex-wrap gap-x-6 gap-y-1">
+              <li><a href="#" className="inline-flex min-h-10 items-center hover:text-white sm:min-h-0">Privacy Policy</a></li>
+              <li><a href="#" className="inline-flex min-h-10 items-center hover:text-white sm:min-h-0">Terms of Service</a></li>
+              <li><a href="#" className="inline-flex min-h-10 items-center hover:text-white sm:min-h-0">Cookie Settings</a></li>
+              <li><a href="#" className="inline-flex min-h-10 items-center hover:text-white sm:min-h-0">Accessibility</a></li>
             </ul>
           </div>
         </div>

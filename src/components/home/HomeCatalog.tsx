@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { toCourseOutline, toPublicProgram } from "@/lib/catalog";
-import { getCatalog } from "@/lib/catalogStore";
+import { getPublicCatalog } from "@/lib/catalogStore";
 import CourseExplorer from "./CourseExplorer";
 import CourseFinder from "./CourseFinder";
 import CredentialShowcase from "./CredentialShowcase";
@@ -11,20 +11,20 @@ import { getSettings } from "@/lib/settings";
 /** Live catalog sections for the home page — reflect admin changes without a rebuild. */
 export async function HomeExplorer() {
   await connection();
-  const { courses, programs } = await getCatalog();
+  const { courses, programs } = await getPublicCatalog();
   return <CourseExplorer courses={courses.map(toCourseOutline)} programs={programs.map(toPublicProgram)} />;
 }
 
 export async function HomeFinder() {
   await connection();
-  const { courses, programs } = await getCatalog();
+  const { courses, programs } = await getPublicCatalog();
   return <CourseFinder courses={courses.map(toCourseOutline)} programs={programs.map(toPublicProgram)} />;
 }
 
 /** Program cards with curriculum path, competencies and a live certificate preview. */
 export async function HomeCredentials() {
   await connection();
-  const [{ courses, programs }, settings] = await Promise.all([getCatalog(), getSettings()]);
+  const [{ courses, programs }, settings] = await Promise.all([getPublicCatalog(), getSettings()]);
   return <CredentialShowcase courses={courses.map(toCourseOutline)} programs={programs.map(toPublicProgram)} settings={settings} />;
 }
 

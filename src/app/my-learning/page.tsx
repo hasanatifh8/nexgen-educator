@@ -168,7 +168,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-accent-strong"><IconFile className="h-5 w-5" /></span>
               <p className="text-sm text-slate-600">{resume.text}</p>
             </div>
-            <Link href="/my-learning/resume" className="btn-secondary mt-4 w-full py-2 text-sm">{resume.label === "Ready" ? "Compare and download" : "View details"}</Link>
+            <Link href="/my-learning/resume" className="btn-secondary mt-4 w-full py-2.5 text-sm">{resume.label === "Ready" ? "Compare and download" : "View details"}</Link>
           </Panel>
 
           <Panel title="Payments" action={<Pill tone={due.length ? "amber" : "green"}>{due.length ? `${due.length} pending` : "All clear"}</Pill>}>
@@ -180,7 +180,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
                   : payments.length ? "All your course fees are settled." : "You have no paid course fees."}
               </p>
             </div>
-            <Link href="/my-learning/payments" className="btn-secondary mt-4 w-full py-2 text-sm">View payments</Link>
+            <Link href="/my-learning/payments" className="btn-secondary mt-4 w-full py-2.5 text-sm">View payments</Link>
           </Panel>
 
           {readyExams.length > 0 && (

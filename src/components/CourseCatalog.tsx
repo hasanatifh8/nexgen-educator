@@ -69,7 +69,7 @@ export default function CourseCatalog({ courses, programs, viewer }: Props) {
                 role="tab"
                 aria-selected={active === c}
                 onClick={() => setActive(c)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all ${
+                className={`min-h-10 shrink-0 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all ${
                   active === c
                     ? "bg-navy-900 text-white shadow-md shadow-navy-900/20"
                     : "bg-white text-slate-600 ring-1 ring-slate-200 hover:text-navy-900 hover:ring-slate-300"
@@ -86,11 +86,11 @@ export default function CourseCatalog({ courses, programs, viewer }: Props) {
                   key={a}
                   onClick={() => setAccess(a)}
                   aria-pressed={access === a}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+                  className={`min-h-10 rounded-md px-3.5 py-2 text-sm font-semibold capitalize transition-colors sm:min-h-0 sm:py-1.5 sm:text-xs ${
                     access === a ? "bg-sky-50 text-brand-ink" : "text-slate-500 hover:text-navy-900"
                   }`}
                 >
-                  {a}
+                  {a === "premium" ? "Paid" : a}
                 </button>
               ))}
             </div>

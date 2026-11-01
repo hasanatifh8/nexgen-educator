@@ -1,4 +1,4 @@
-import { coursesFor, type Course } from "./catalog";
+import { activeCourses, coursesFor, type Course } from "./catalog";
 
 /** Access rules: shared by pages, actions and the exam engine. Safe for client import. */
 export type AccessUser = {
@@ -34,7 +34,8 @@ export type ExamEligibility =
  */
 export function examEligibility(user: AccessUser, programId: string, courses: Course[]): ExamEligibility {
   if (user.isAdmin) return { ok: true };
-  const inProgram = coursesFor(courses, programId);
+  // Disabled courses are no longer offered, so they no longer count towards the certificate.
+  const inProgram = activeCourses(coursesFor(courses, programId));
   if (!inProgram.length) return { ok: false, reason: "no-courses", remaining: [] };
   const notAssigned = inProgram.filter((c) => !canAccessCourse(user, c.id));
   if (notAssigned.length) return { ok: false, reason: "not-assigned", remaining: notAssigned.map(({ id, title }) => ({ id, title })) };

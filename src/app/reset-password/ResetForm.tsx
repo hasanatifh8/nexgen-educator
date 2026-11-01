@@ -26,7 +26,7 @@ export default function ResetForm({ token, email }: { token: string; email: stri
       <div>
         <div className="flex items-center justify-between">
           <label htmlFor="password" className="block text-sm font-semibold text-navy-900">New password</label>
-          <button type="button" onClick={() => setShow((s) => !s)} className="text-xs font-semibold text-slate-500 hover:text-navy-900">
+          <button type="button" onClick={() => setShow((s) => !s)} className="-my-2 px-2 py-2 text-xs font-semibold text-slate-500 hover:text-navy-900">
             {show ? "Hide" : "Show"}
           </button>
         </div>

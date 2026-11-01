@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import { IconBadge, IconCheck, IconLock } from "@/components/Icons";
 import { examEligibility, isCourseComplete } from "@/lib/access";
-import { coursesFor } from "@/lib/catalog";
+import { activeCourses, coursesFor } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalogStore";
 import { requireLearner } from "@/lib/dal";
 import { getSettings } from "@/lib/settings";
@@ -44,7 +44,7 @@ async function ExamContent({ params }: { params: Params }) {
                 : "Finish every course in this program to unlock the certification exam."}
             </p>
             <ul className="mt-6 space-y-2">
-              {coursesFor(courses, program.id).map((c) => {
+              {activeCourses(coursesFor(courses, program.id)).map((c) => {
                 const assigned = user.assignedCourses.includes(c.id) || user.isAdmin;
                 const done = isCourseComplete(user, c);
                 return (
