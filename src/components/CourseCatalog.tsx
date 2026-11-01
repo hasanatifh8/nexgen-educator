@@ -42,7 +42,6 @@ function CourseAction({ course, viewer, percent, done }: { course: CourseSummary
   return (
     <form action={requestAccessAction} className="mt-5">
       <input type="hidden" name="courseId" value={course.id} />
-      <input type="hidden" name="from" value="list" />
       <button type="submit" className="btn w-full bg-navy-900 text-white hover:bg-navy-800"><IconLock className="h-4 w-4" /> Request access</button>
     </form>
   );

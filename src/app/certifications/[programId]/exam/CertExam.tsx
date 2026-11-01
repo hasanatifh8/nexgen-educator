@@ -302,7 +302,7 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
                 <CertificateDownload data={certData(result.certificate)} settings={settings} />
                 <LinkedInAddButton certificate={result.certificate} settings={settings} />
               </div>
-              <Link href="/my-learning#programs" className="mt-3 inline-flex text-sm font-semibold text-brand-ink hover:underline">Back to My Learning</Link>
+              <Link href="/my-learning/courses#programs" className="mt-3 inline-flex text-sm font-semibold text-brand-ink hover:underline">Back to My Learning</Link>
             </>
           ) : (
             <div className="mt-8 grid gap-3 sm:grid-cols-2">

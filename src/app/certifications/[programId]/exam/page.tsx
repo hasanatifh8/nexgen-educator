@@ -23,7 +23,7 @@ async function ExamContent({ params }: { params: Params }) {
   const [{ programs, courses }, settings] = await Promise.all([getCatalog(), getSettings()]);
   const program = programs.find((p) => p.id === programId);
   if (!program) notFound();
-  if (!program.exam.questions.length) redirect("/my-learning#programs");
+  if (!program.exam.questions.length) redirect("/my-learning/courses#programs");
   const eligible = examEligibility(user, program.id, courses);
 
   const cert = user.certificates.find((c) => c.programId === program.id);
@@ -71,7 +71,7 @@ async function ExamContent({ params }: { params: Params }) {
             <p className="mt-2 text-slate-600">
               You passed with {cert.score}/{cert.total}. Credential ID <span className="font-mono font-semibold text-navy-900">{cert.credentialId}</span>
             </p>
-            <Link href="/my-learning#programs" className="btn-primary mt-6">View & download certificate</Link>
+            <Link href="/my-learning/certificates" className="btn-primary mt-6">View & download certificate</Link>
           </div>
         ) : (
           <CertExam

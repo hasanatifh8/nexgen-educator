@@ -25,19 +25,11 @@ const highlights = [
 ];
 
 /** Public catalog: anyone can browse; buttons adapt to the viewer’s profile and assignments. */
-async function Catalog({ searchParams }: { searchParams: PageProps<"/courses">["searchParams"] }) {
+async function Catalog() {
   await connection(); // catalog changes from the admin portal must show immediately
-  const [user, { programs, courses }, { requested }] = await Promise.all([getCurrentUser(), getCatalog(), searchParams]);
-  const requestedTitle = typeof requested === "string" ? courses.find((c) => c.id === requested)?.title : undefined;
+  const [user, { programs, courses }] = await Promise.all([getCurrentUser(), getCatalog()]);
   return (
     <>
-      {requestedTitle && (
-        <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-          <p role="status" className="rounded-xl bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
-            Request sent for <span className="font-semibold">{requestedTitle}</span>. Our team will review it and assign the course to you.
-          </p>
-        </div>
-      )}
       <CourseCatalog
         courses={courses.map(toCourseSummary)}
         programs={programs.map(toPublicProgram)}
@@ -54,7 +46,7 @@ async function Catalog({ searchParams }: { searchParams: PageProps<"/courses">["
   );
 }
 
-export default function CoursesPage({ searchParams }: PageProps<"/courses">) {
+export default function CoursesPage() {
   return (
     <>
       <SiteHeader />
@@ -73,7 +65,7 @@ export default function CoursesPage({ searchParams }: PageProps<"/courses">) {
         </PageHeader>
 
         <Suspense fallback={<GridSkeleton />}>
-          <Catalog searchParams={searchParams} />
+          <Catalog />
         </Suspense>
 
         <section className="py-16">

@@ -37,6 +37,35 @@ export type StoredUser = {
   requests: { courseId: string; at: string }[];
   /** Every certification-exam attempt; each attempt can be submitted once. */
   examAttempts: ExamAttempt[];
+  /** programId → payment recorded by an admin (there is no online checkout yet). */
+  payments?: Record<string, PaymentRecord>;
+  /** The resume our team rewrites from the learner's CV after they complete a course. */
+  resumeService?: ResumeService;
+};
+
+export const PAYMENT_STATUSES = ["pending", "paid", "waived"] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+export type PaymentRecord = {
+  status: PaymentStatus;
+  /** Amount received in rupees, including GST. */
+  amount?: number;
+  /** UPI / bank transaction reference. */
+  reference?: string;
+  paidAt?: string;
+  updatedAt: string;
+};
+
+export const RESUME_STATUSES = ["in_progress", "delivered"] as const;
+export type ResumeStatus = (typeof RESUME_STATUSES)[number];
+export type ResumeService = {
+  status: ResumeStatus;
+  /** The improved resume uploaded by our team. */
+  file?: StoredFile;
+  /** "What we changed" — one improvement per item, shown next to the side-by-side comparison. */
+  changes: string[];
+  message?: string;
+  updatedAt: string;
+  deliveredAt?: string;
 };
 
 export type ExamAttempt = {
@@ -304,6 +333,18 @@ export async function setAssignedCourses(userId: string, courseIds: string[]) {
   return updateUser(userId, (u) => {
     u.assignedCourses = [...new Set(courseIds)];
     u.requests = u.requests.filter((r) => !u.assignedCourses.includes(r.courseId));
+  });
+}
+
+export async function setPayment(userId: string, programId: string, record: PaymentRecord) {
+  return updateUser(userId, (u) => {
+    u.payments = { ...u.payments, [programId]: record };
+  });
+}
+
+export async function setResumeService(userId: string, service: ResumeService) {
+  return updateUser(userId, (u) => {
+    u.resumeService = service;
   });
 }
 

@@ -277,7 +277,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
             {certified ? (
               <p className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700"><IconCheck className="h-4 w-4" /> You’re certified</p>
             ) : unlocked ? (
-              <Link href="/my-learning#programs" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-ink hover:underline">
+              <Link href="/my-learning/courses#programs" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-ink hover:underline">
                 Track your progress <IconArrowRight className="h-4 w-4" />
               </Link>
             ) : null}

@@ -82,3 +82,40 @@ export function passwordResetEmail(firstName: string, link: string): Email {
     footnote: "If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.",
   });
 }
+
+export function paymentReceivedEmail(firstName: string, base: string, p: { programTitle: string; amount: string; reference?: string; date: string }): Email {
+  return render(`Payment received: ${p.programTitle}`, {
+    greeting: `Dear ${firstName},`,
+    paragraphs: [
+      `Thank you. We have received your payment of ${p.amount} for the ${p.programTitle} program on ${p.date}.${p.reference ? ` Transaction reference: ${p.reference}.` : ""}`,
+      "You can view the status of all your payments at any time in the Payments section of your learner portal.",
+    ],
+    button: { label: "View payments", url: `${base}/my-learning/payments` },
+  });
+}
+
+export function resumeReadyEmail(firstName: string, base: string): Email {
+  return render("Your upgraded resume is ready", {
+    greeting: `Dear ${firstName},`,
+    paragraphs: [
+      "Congratulations on completing your course. Our career team has rewritten your resume to highlight your new skills and certifications.",
+      "You can compare it side by side with your original CV, review the improvements we made, and download it from your learner portal.",
+    ],
+    button: { label: "View my new resume", url: `${base}/my-learning/resume` },
+    footnote: "If you would like any changes, simply reply to this email.",
+  });
+}
+
+export function courseRequestedEmail(firstName: string, base: string, r: { courseTitle: string; programTitle: string; fee?: string }): Email {
+  return render(`Course request received: ${r.courseTitle}`, {
+    greeting: `Dear ${firstName},`,
+    paragraphs: [
+      `We have received your request to join ${r.courseTitle}, part of the ${r.programTitle} program.`,
+      r.fee
+        ? `This is a premium program with a one-time fee of ${r.fee} (including 18% GST). Our team will contact you with payment details, and the course will be approved for you as soon as payment is confirmed.`
+        : "This course is free. Our team will review your request and approve it, usually within 1–2 working days.",
+      "We will email you again the moment the course is available in your learner portal.",
+    ],
+    button: { label: "Track my request", url: `${base}/my-learning/courses` },
+  });
+}

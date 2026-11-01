@@ -9,9 +9,12 @@ import { templateById } from "@/lib/lessonTemplates";
 import { getCurrentUser } from "@/lib/dal";
 import { saveSettings } from "@/lib/settings";
 import { normalizeSiteUrl, type SiteSettings } from "@/lib/siteSettings";
-import { findUserById, setAssignedCourses, setVerification } from "@/lib/users";
+import { formatINR } from "@/lib/catalog";
+import { fmtDate } from "@/lib/learner";
+import { deleteUpload, saveUpload } from "@/lib/uploads";
+import { PAYMENT_STATUSES, RESUME_STATUSES, findUserById, setAssignedCourses, setPayment, setResumeService, setVerification, type PaymentStatus, type ResumeStatus } from "@/lib/users";
 import { getCatalog } from "@/lib/catalogStore";
-import { courseApprovedEmail } from "@/lib/emails";
+import { courseApprovedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
 import { appUrl, sendMail } from "@/lib/mailer";
 import { ENQUIRY_STATUSES, updateEnquiry, type EnquiryStatus } from "@/lib/enquiries";
 
@@ -242,6 +245,81 @@ export async function reviewProfileAction(fd: FormData) {
   if (decision === "rejected" && !note) redirect(`/admin/users/${userId}?error=${encodeURIComponent("Add a note telling the learner what to fix.")}`);
   await setVerification(userId, decision, note || undefined);
   redirect(`/admin/users/${userId}?saved=${decision}`);
+}
+
+export async function savePaymentAction(fd: FormData) {
+  await assertAdmin();
+  const userId = str(fd, "userId");
+  const programId = str(fd, "programId");
+  const status = str(fd, "status") as PaymentStatus;
+  const back = (error?: string) => redirect(`/admin/users/${userId}${error ? `?error=${encodeURIComponent(error)}` : "?saved=payment"}#payments`);
+  const [user, program] = await Promise.all([findUserById(userId), getProgram(programId)]);
+  if (!user || !program) redirect("/admin/users");
+  if (!PAYMENT_STATUSES.includes(status)) back("Choose a payment status.");
+
+  const amountRaw = str(fd, "amount");
+  const amount = amountRaw ? Number(amountRaw) : undefined;
+  const reference = str(fd, "reference").slice(0, 60) || undefined;
+  const paidOn = str(fd, "paidAt");
+  if (amount !== undefined && (!Number.isFinite(amount) || amount < 0 || amount > 1_000_000)) back("Enter the amount received in rupees.");
+  if (paidOn && !/^\d{4}-\d{2}-\d{2}$/.test(paidOn)) back("Enter a valid payment date.");
+
+  const paid = status === "paid";
+  const paidAt = paid ? (paidOn ? new Date(`${paidOn}T12:00:00Z`) : new Date()).toISOString() : undefined;
+  await setPayment(userId, programId, { status, ...(paid ? { amount, reference, paidAt } : {}), updatedAt: new Date().toISOString() });
+
+  // Receipt email only when the payment is newly confirmed.
+  const base = await appUrl();
+  if (paid && user.payments?.[programId]?.status !== "paid" && base) {
+    await sendMail({
+      to: user.email,
+      ...paymentReceivedEmail(user.firstName, base, { programTitle: program.title, amount: formatINR(amount ?? 0), reference, date: fmtDate(paidAt!) }),
+    });
+  }
+  back();
+}
+
+export async function saveResumeAction(fd: FormData) {
+  await assertAdmin();
+  const userId = str(fd, "userId");
+  const status = str(fd, "status") as ResumeStatus;
+  const back = (error?: string) => redirect(`/admin/users/${userId}${error ? `?error=${encodeURIComponent(error)}` : "?saved=resume"}#resume`);
+  const user = await findUserById(userId);
+  if (!user) redirect("/admin/users");
+  if (!RESUME_STATUSES.includes(status)) back("Choose a resume status.");
+
+  const changes = String(fd.get("changes") ?? "").split("\n").map((l) => l.replace(/^[-*•]\s*/, "").trim()).filter(Boolean);
+  const message = str(fd, "message").slice(0, 600) || undefined;
+  if (changes.length > 20 || changes.some((c) => c.length > 200)) back("List up to 20 improvements, 200 characters each.");
+
+  const prev = user.resumeService;
+  const upload = fd.get("file");
+  let file = prev?.file;
+  if (upload instanceof File && upload.size > 0) {
+    const r = await saveUpload(user.id, "resume", upload, ["pdf", "doc", "docx"], "resume");
+    if ("error" in r) back(r.error);
+    else file = r.file;
+  }
+  if (status === "delivered" && !file) back("Upload the upgraded resume before marking it delivered.");
+
+  const now = new Date().toISOString();
+  const newFile = file !== prev?.file;
+  await setResumeService(userId, {
+    status,
+    file,
+    changes,
+    message,
+    updatedAt: now,
+    ...(status === "delivered" ? { deliveredAt: prev?.status === "delivered" && !newFile ? prev.deliveredAt : now } : {}),
+  });
+  if (newFile && prev?.file) await deleteUpload(user.id, prev.file);
+
+  // Tell the learner when the resume is first delivered, or when a delivered resume is replaced.
+  const base = await appUrl();
+  if (status === "delivered" && (prev?.status !== "delivered" || newFile) && base) {
+    await sendMail({ to: user.email, ...resumeReadyEmail(user.firstName, base) });
+  }
+  back();
 }
 
 // --- Enquiries -----------------------------------------------------------------

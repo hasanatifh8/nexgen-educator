@@ -1,288 +1,203 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { connection } from "next/server";
 import { Suspense } from "react";
-import SiteHeader from "@/components/SiteHeader";
-import Footer from "@/components/Footer";
 import { courseProgress } from "@/components/learn/progress";
-import { IconArrowRight, IconBadge, IconCheck, IconClock, IconShield, IconTimer } from "@/components/Icons";
-import CertificateDownload from "@/components/CertificateDownload";
-import LinkedInAddButton from "@/components/LinkedInAddButton";
+import { IconArrowRight, IconBadge, IconBook, IconCheck, IconClock, IconFile, IconPlay, IconTimer, IconWallet } from "@/components/Icons";
 import { canAccessCourse, examEligibility, isCourseComplete } from "@/lib/access";
-import { coursesFor } from "@/lib/catalog";
-import { formatCertDate } from "@/lib/certificate/design";
-import { getSettings } from "@/lib/settings";
-import { getCatalog } from "@/lib/catalogStore";
-import { requireUser } from "@/lib/dal";
+import { formatINR } from "@/lib/catalog";
+import { paymentRows, resumeStage } from "@/lib/learner";
 import { CATEGORY_ACCENT } from "@/lib/styles";
+import { loadLearner } from "./data";
+import { Panel, Pill, portalSkeleton, type Tone } from "./ui";
 
-export const metadata: Metadata = { title: "My Learning — NextGen Educator" };
+const RESUME_COPY = {
+  locked: { tone: "slate", label: "Locked", text: "Complete a course to unlock your professional resume upgrade." },
+  queued: { tone: "blue", label: "Queued", text: "You completed a course! Our career team will start on your resume soon." },
+  in_progress: { tone: "amber", label: "In progress", text: "Our career team is rewriting your resume." },
+  ready: { tone: "green", label: "Ready", text: "Your upgraded resume is ready to compare and download." },
+} satisfies Record<string, { tone: Tone; label: string; text: string }>;
 
-async function Dashboard({ searchParams }: { searchParams: PageProps<"/my-learning">["searchParams"] }) {
-  await connection();
-  const user = await requireUser("/my-learning");
+async function Overview({ searchParams }: { searchParams: PageProps<"/my-learning">["searchParams"] }) {
+  const { session: user, record, catalog } = await loadLearner("/my-learning");
   const sp = await searchParams;
-  const [{ programs, courses }, settings] = await Promise.all([getCatalog(), getSettings()]);
-  const mine = courses.filter((c) => user.assignedCourses.includes(c.id));
-  const requested = user.requests.map((r) => courses.find((c) => c.id === r.courseId)).filter((c) => !!c);
-  const programTitle = (id: string) => programs.find((p) => p.id === id)?.title ?? "";
-  const readyExams = programs.filter(
-    (p) => p.exam.questions.length && examEligibility(user, p.id, courses).ok && !user.certificates.some((c) => c.programId === p.id),
-  );
+  const { programs, courses } = catalog;
 
-  // Programs the learner is working towards: at least one course assigned, or already certified.
-  const myPrograms = programs
-    .map((p) => {
-      const inProgram = coursesFor(courses, p.id);
-      const cert = user.certificates.find((c) => c.programId === p.id);
-      return {
-        p,
-        cert,
-        inProgram,
-        assigned: inProgram.filter((c) => canAccessCourse(user, c.id)),
-        done: inProgram.filter((c) => canAccessCourse(user, c.id) && isCourseComplete(user, c)),
-        exam: examEligibility(user, p.id, courses),
-      };
-    })
-    .filter((x) => x.assigned.length > 0 || x.cert);
-
+  const mine = courses.filter((c) => user.assignedCourses.includes(c.id)).map((c) => ({ c, pr: courseProgress(c, user.progress[c.id]) }));
+  const completed = mine.filter(({ c }) => isCourseComplete(user, c));
+  const lessonsDone = mine.reduce((n, { pr }) => n + pr.count, 0);
+  const minutesDone = mine.reduce((n, { pr }) => n + pr.lessons.filter((l) => pr.done.has(l.id)).reduce((m, l) => m + l.minutes, 0), 0);
+  const overall = mine.length ? Math.round(mine.reduce((n, { pr }) => n + pr.percent, 0) / mine.length) : 0;
+  // Continue where they left off: the furthest-along unfinished course, else the first not started.
+  const current = mine.filter(({ pr }) => pr.percent < 100).sort((a, b) => b.pr.percent - a.pr.percent)[0];
+  const readyExams = programs.filter((p) => p.exam.questions.length && examEligibility(user, p.id, courses).ok && !user.certificates.some((c) => c.programId === p.id));
+  const payments = paymentRows(record, catalog);
+  const due = payments.filter((r) => r.status === "pending");
+  const resume = RESUME_COPY[resumeStage(record, catalog)];
   const v = user.verification.status;
-  const steps = [
+
+  const journey = [
     { label: "Account created", done: true },
-    { label: "Profile & documents", done: user.profileComplete, href: "/onboarding" },
-    { label: v === "verified" ? "Verified" : v === "rejected" ? "Changes requested" : "Verification", done: v === "verified", warn: v === "rejected", href: v === "rejected" ? "/onboarding" : undefined },
-    { label: "Courses assigned", done: mine.length > 0 },
+    { label: "Profile submitted", done: user.profileComplete, href: "/onboarding" },
+    { label: "Identity verified", done: v === "verified" },
+    { label: "Courses approved", done: mine.length > 0, href: "/courses" },
+    { label: "Course completed", done: completed.length > 0 },
+    { label: "Certified", done: user.certificates.length > 0 },
+    { label: "Resume upgraded", done: resume.label === "Ready", href: "/my-learning/resume" },
   ];
+  const nextStep = journey.findIndex((s) => !s.done);
+  const journeyPct = Math.round((journey.filter((s) => s.done).length / journey.length) * 100);
+
+  // The single most useful thing to do next.
+  const action = !user.profileComplete
+    ? { title: "Complete your profile", text: "Upload your Aadhaar or PAN and your CV so our team can verify you and approve courses.", href: "/onboarding", cta: "Complete profile" }
+    : v === "rejected"
+      ? { title: "Update your documents", text: user.verification.note || "Our team could not verify your documents.", href: "/onboarding", cta: "Update profile" }
+      : readyExams.length
+        ? { title: `Take the ${readyExams[0].title} exam`, text: "You have completed every course in this program. Pass the exam to earn your certificate.", href: `/certifications/${readyExams[0].id}/exam`, cta: "Start exam" }
+        : current
+          ? { title: current.pr.count ? `Continue ${current.c.title}` : `Start ${current.c.title}`, text: `Next lesson: ${current.pr.next.title}`, href: `/courses/${current.c.id}/learn/${current.pr.next.id}`, cta: current.pr.count ? "Resume lesson" : "Start course" }
+          : mine.length === 0
+            ? { title: user.requests.length ? "Your requests are under review" : "Request your first course", text: user.requests.length ? "Our team will approve your requested courses shortly. Explore more while you wait." : "Browse the catalog and request the courses you would like to take.", href: "/courses", cta: "Browse courses" }
+            : { title: "All your courses are complete", text: "Request another course to keep growing your skills.", href: "/courses", cta: "Browse courses" };
 
   return (
-    <>
-      <section className="relative overflow-hidden bg-navy-900 text-white">
-        <div className="bg-grid absolute inset-0" aria-hidden="true" />
-        <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <p className="text-sm text-slate-400">My Learning</p>
-          <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Welcome back, {user.firstName}</h1>
-          <ol className="mt-8 grid gap-3 sm:grid-cols-4">
-            {steps.map((s, i) => (
-              <li key={s.label}>
-                {(() => {
-                  const inner = (
-                    <span className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold ${s.done ? "bg-emerald-400/15 text-emerald-200" : s.warn ? "bg-orange-400/20 text-orange-200" : "bg-white/5 text-slate-300 ring-1 ring-white/10"}`}>
-                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs ${s.done ? "bg-emerald-400 text-navy-900" : "bg-white/10"}`}>
-                        {s.done ? <IconCheck className="h-3.5 w-3.5" /> : i + 1}
-                      </span>
-                      {s.label}
-                    </span>
-                  );
-                  return s.href && !s.done ? <Link href={s.href}>{inner}</Link> : inner;
-                })()}
-              </li>
-            ))}
-          </ol>
+    <div className="min-w-0 space-y-6">
+      {sp.profile === "1" && (
+        <p role="status" className="rounded-xl bg-emerald-50 px-5 py-4 text-sm text-emerald-800 ring-1 ring-emerald-200">
+          <span className="font-semibold">Profile submitted.</span> Our team will verify your documents, usually within 1–2 working days. Meanwhile, browse the catalog and request the courses you want.
+        </p>
+      )}
+
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 p-6 text-white sm:p-8">
+        <div className="bg-grid absolute inset-0 opacity-40" aria-hidden="true" />
+        <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="text-sm text-sky-200">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
+            <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Welcome back, {user.firstName}</h1>
+            <div className="mt-6 rounded-2xl bg-white/10 p-5 ring-1 ring-white/15 backdrop-blur">
+              <p className="text-xs font-bold tracking-[0.15em] text-amber-300 uppercase">Your next step</p>
+              <p className="mt-1 font-display text-xl font-semibold">{action.title}</p>
+              <p className="mt-1 text-sm text-slate-200">{action.text}</p>
+              <Link href={action.href} className="btn mt-4 bg-accent text-white hover:bg-accent-dark">{action.cta} <IconArrowRight className="h-4 w-4" /></Link>
+            </div>
+          </div>
+          <div className="mx-auto text-center">
+            <div className="relative grid h-36 w-36 place-items-center rounded-full" style={{ background: `conic-gradient(#38bdf8 ${overall * 3.6}deg, rgba(255,255,255,0.12) 0deg)` }}>
+              <div className="grid h-28 w-28 place-items-center rounded-full bg-navy-900">
+                <div><p className="font-display text-3xl font-bold">{overall}%</p><p className="text-xs text-slate-300">overall progress</p></div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl space-y-10 px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        {sp.profile === "1" && (
-          <p role="status" className="rounded-xl bg-emerald-50 px-5 py-4 text-sm text-emerald-800 ring-1 ring-emerald-200">
-            <span className="font-semibold">Profile submitted!</span> Our team will verify your documents. Meanwhile, browse courses and request the ones you want.
-          </p>
-        )}
-        {!user.profileComplete && (
-          <div className="flex flex-col gap-4 rounded-2xl bg-gradient-to-r from-accent to-amber-500 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-display text-xl font-bold">Complete your profile to get started</p>
-              <p className="text-sm text-orange-50">Upload your Aadhaar or PAN and your CV so we can verify you and assign courses.</p>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "Courses approved", value: mine.length, sub: `${completed.length} completed`, icon: IconBook, tone: "bg-sky-50 text-brand-ink" },
+          { label: "Lessons completed", value: lessonsDone, sub: `of ${mine.reduce((n, { pr }) => n + pr.total, 0)} lessons`, icon: IconCheck, tone: "bg-emerald-50 text-emerald-600" },
+          { label: "Learning time", value: minutesDone >= 60 ? `${Math.floor(minutesDone / 60)}h ${minutesDone % 60}m` : `${minutesDone}m`, sub: "time spent on lessons", icon: IconClock, tone: "bg-violet-50 text-violet-600" },
+          { label: "Certificates", value: user.certificates.length, sub: readyExams.length ? `${readyExams.length} exam ready` : "earned so far", icon: IconBadge, tone: "bg-orange-50 text-accent-strong" },
+        ].map(({ label, value, sub, icon: Icon, tone }) => (
+          <div key={label} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-slate-500">{label}</p>
+              <span className={`grid h-10 w-10 place-items-center rounded-xl ${tone}`}><Icon className="h-5 w-5" /></span>
             </div>
-            <Link href="/onboarding" className="btn shrink-0 bg-white px-6 py-3 text-accent-strong hover:bg-orange-50">Complete profile <IconArrowRight className="h-4 w-4" /></Link>
+            <p className="mt-2 font-display text-3xl font-bold text-navy-900">{value}</p>
+            <p className="text-xs text-slate-500">{sub}</p>
           </div>
-        )}
-        {v === "rejected" && user.profileComplete && (
-          <p className="rounded-xl bg-red-50 px-5 py-4 text-sm text-red-800 ring-1 ring-red-200">
-            <span className="font-semibold">Action needed:</span> {user.verification.note} <Link href="/onboarding" className="font-semibold underline">Update profile</Link>
-          </p>
-        )}
+        ))}
+      </div>
 
-        {readyExams.length > 0 && (
-          <section className="rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 p-6 text-white">
-            <p className="font-display text-xl font-bold">🎉 You’re ready for {readyExams.length === 1 ? "an exam" : `${readyExams.length} exams`}</p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {readyExams.map((p) => (
-                <Link key={p.id} href={`/certifications/${p.id}/exam`} className="btn bg-white text-emerald-700 hover:bg-emerald-50"><IconTimer className="h-4 w-4" /> {p.title}</Link>
-              ))}
-            </div>
-          </section>
-        )}
+      <Panel title="Your journey" action={<span className="text-sm font-semibold text-slate-500">{journeyPct}% complete</span>}>
+        <ol className="grid gap-3 sm:grid-cols-4 xl:grid-cols-7">
+          {journey.map((s, i) => {
+            const isNext = i === nextStep;
+            const inner = (
+              <div className={`h-full rounded-xl p-3 text-sm ring-1 transition ${s.done ? "bg-emerald-50 ring-emerald-100" : isNext ? "bg-navy-900 text-white ring-navy-900" : "bg-slate-50 ring-slate-100"}`}>
+                <span className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${s.done ? "bg-emerald-500 text-white" : isNext ? "bg-white/15" : "bg-white text-slate-400 ring-1 ring-slate-200"}`}>
+                  {s.done ? <IconCheck className="h-4 w-4" /> : i + 1}
+                </span>
+                <p className={`mt-2 font-semibold ${s.done ? "text-emerald-800" : isNext ? "" : "text-slate-500"}`}>{s.label}</p>
+                {isNext && <p className="text-xs text-sky-200">Up next</p>}
+              </div>
+            );
+            return <li key={s.label}>{isNext && s.href ? <Link href={s.href}>{inner}</Link> : inner}</li>;
+          })}
+        </ol>
+      </Panel>
 
-        <section>
-          <div className="flex items-end justify-between">
-            <h2 className="section-title !text-2xl">My courses</h2>
-            <Link href="/courses" className="text-sm font-semibold text-brand-ink hover:underline">Browse all courses →</Link>
-          </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
+        <Panel title="Continue learning" action={<Link href="/my-learning/courses" className="text-sm font-semibold text-brand-ink hover:underline">All courses →</Link>}>
           {mine.length === 0 ? (
-            <div className="card mt-6 p-10 text-center">
-              <p className="font-display text-lg font-semibold text-navy-900">No courses assigned yet</p>
-              <p className="mt-1 text-sm text-slate-500">
-                {requested.length ? "Your requests are with our team — courses appear here once assigned." : "Explore the catalog and request the courses you’re interested in."}
-              </p>
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center">
+              <p className="font-display font-semibold text-navy-900">No courses approved yet</p>
+              <p className="mt-1 text-sm text-slate-500">{user.requests.length ? `${user.requests.length} request${user.requests.length === 1 ? " is" : "s are"} with our team.` : "Request a course from the catalog to get started."}</p>
               <Link href="/courses" className="btn-primary mt-5">Explore courses</Link>
             </div>
           ) : (
-            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {mine.map((c) => {
-                const pr = courseProgress(c, user.progress[c.id]);
+            <ul className="space-y-3">
+              {mine.sort((a, b) => Number(a.pr.percent === 100) - Number(b.pr.percent === 100) || b.pr.percent - a.pr.percent).slice(0, 4).map(({ c, pr }) => {
                 const open = canAccessCourse(user, c.id);
+                const href = !open ? "/onboarding" : pr.percent === 100 ? `/courses/${c.id}` : `/courses/${c.id}/learn/${pr.next.id}`;
                 return (
-                  <article key={c.id} className="card card-hover flex flex-col overflow-hidden">
-                    <div className={`h-1.5 bg-gradient-to-r ${CATEGORY_ACCENT[c.category]}`} />
-                    <div className="flex flex-1 flex-col p-6">
-                      <p className="text-xs font-semibold text-brand-ink">{programTitle(c.programId)}</p>
-                      <h3 className="mt-2 font-display text-lg leading-snug font-semibold text-navy-900">{c.title}</h3>
-                      <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><IconClock className="h-4 w-4" /> {pr.total} lessons · {pr.minutes} min</p>
-                      <div className="mt-auto pt-5">
-                        <div className="flex justify-between text-xs font-semibold text-slate-600"><span>{pr.count}/{pr.total} lessons</span><span>{pr.percent}%</span></div>
-                        <div className="mt-1.5 h-2 rounded-full bg-slate-100">
-                          <div className={`h-2 rounded-full ${pr.percent === 100 ? "bg-emerald-600" : "bg-gradient-to-r from-brand to-brand-teal"}`} style={{ width: `${pr.percent}%` }} />
-                        </div>
-                        {open ? (
-                          <Link href={pr.percent === 100 || !pr.next ? `/courses/${c.id}` : `/courses/${c.id}/learn/${pr.next.id}`} className={`mt-4 w-full ${pr.percent === 100 ? "btn bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" : "btn-primary"}`}>
-                            {pr.percent === 100 ? "✓ Completed — review" : pr.count ? "Continue" : "Start course"}
-                          </Link>
-                        ) : (
-                          <Link href="/onboarding" className="btn mt-4 w-full bg-navy-900 text-white">Complete profile to open</Link>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section id="programs" className="scroll-mt-24">
-          <h2 className="section-title !text-2xl">My certification programs</h2>
-          <p className="mt-1 text-sm text-slate-600">Finish every course in a program to unlock its exam — pass it to earn your certificate.</p>
-          {myPrograms.length === 0 ? (
-            <p className="card mt-6 p-8 text-center text-sm text-slate-500">Your programs appear here once courses are assigned to you.</p>
-          ) : (
-            <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              {myPrograms.map(({ p, cert, inProgram, assigned, done, exam }) => {
-                const eligible = exam.ok;
-                const pct = inProgram.length ? Math.round((done.length / inProgram.length) * 100) : 0;
-                return (
-                  <article key={p.id} className="card flex flex-col p-6">
-                    <div className="flex items-start gap-4">
-                      <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ring-1 ${cert ? "bg-emerald-50 text-emerald-600 ring-emerald-100" : "bg-orange-50 text-accent-strong ring-orange-100"}`}>
-                        <IconBadge className="h-6 w-6" />
+                  <li key={c.id}>
+                    <Link href={href} className="group flex items-center gap-4 rounded-xl p-3 ring-1 ring-slate-100 transition hover:bg-slate-50 hover:ring-slate-200">
+                      <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-white ${CATEGORY_ACCENT[c.category]}`}>
+                        {pr.percent === 100 ? <IconCheck className="h-5 w-5" /> : <IconPlay className="h-5 w-5" />}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-brand-ink">{p.category}</p>
-                        <h3 className="font-display text-lg leading-snug font-semibold text-navy-900">{p.title}</h3>
-                      </div>
-                      {cert ? (
-                        <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">Certified</span>
-                      ) : eligible ? (
-                        <span className="shrink-0 rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-bold text-sky-700 ring-1 ring-sky-200">Exam ready</span>
-                      ) : (
-                        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600">In progress</span>
-                      )}
-                    </div>
-
-                    <ul className="mt-5 space-y-2">
-                      {inProgram.map((c) => {
-                        const isDone = done.some((d) => d.id === c.id);
-                        const isAssigned = assigned.some((a) => a.id === c.id);
-                        return (
-                          <li key={c.id} className="flex items-center gap-3 text-sm">
-                            <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${isDone ? "bg-emerald-600 text-white" : isAssigned ? "ring-2 ring-brand-teal" : "bg-slate-100"}`}>
-                              {isDone && <IconCheck className="h-3 w-3" />}
-                            </span>
-                            <Link href={`/courses/${c.id}`} className="flex-1 text-navy-900 hover:text-brand-ink">{c.title}</Link>
-                            <span className={`text-xs font-semibold ${isDone ? "text-emerald-600" : isAssigned ? "text-brand-ink" : "text-slate-400"}`}>
-                              {isDone ? "Completed" : isAssigned ? "In progress" : "Not assigned"}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-
-                    <div className="mt-5">
-                      <div className="flex justify-between text-xs font-semibold text-slate-600"><span>Courses completed</span><span>{done.length}/{inProgram.length}</span></div>
-                      <div className="mt-1.5 h-2 rounded-full bg-slate-100">
-                        <div className={`h-2 rounded-full ${pct === 100 ? "bg-emerald-600" : "bg-gradient-to-r from-brand to-brand-teal"}`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-
-                    <div className="mt-auto pt-5">
-                      {cert ? (
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <CertificateDownload
-                            className="btn-primary w-full"
-                            label="Download certificate"
-                            settings={settings}
-                            data={{ name: cert.holderName ?? `${user.firstName} ${user.lastName}`, title: cert.programTitle, score: cert.score, total: cert.total, credentialId: cert.credentialId, issuedOn: formatCertDate(cert.issuedAt) }}
-                          />
-                          <LinkedInAddButton certificate={cert} settings={settings} className="btn-secondary w-full" />
-                          <Link href={`/verify/${cert.credentialId}`} className="btn-secondary w-full sm:col-span-2">Public verification page — share with employers</Link>
-                          <p className="text-xs text-slate-500 sm:col-span-2">Credential ID <span className="font-mono font-semibold text-navy-900">{cert.credentialId}</span> · {cert.score}/{cert.total}</p>
+                        <p className="truncate font-semibold text-navy-900 group-hover:text-brand-ink">{c.title}</p>
+                        <div className="mt-1.5 flex items-center gap-3">
+                          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                            <div className={`h-1.5 rounded-full ${pr.percent === 100 ? "bg-emerald-500" : "bg-gradient-to-r from-brand to-brand-teal"}`} style={{ width: `${pr.percent}%` }} />
+                          </div>
+                          <span className="w-24 shrink-0 text-right text-xs font-semibold text-slate-500">{pr.count}/{pr.total} · {pr.percent}%</span>
                         </div>
-                      ) : eligible && p.exam.questions.length > 0 ? (
-                        <Link href={`/certifications/${p.id}/exam`} className="btn-primary w-full"><IconTimer className="h-4 w-4" /> Take certification exam</Link>
-                      ) : (
-                        <p className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-100">
-                          {assigned.length < inProgram.length
-                            ? `${inProgram.length - assigned.length} more course(s) in this program need to be assigned before the exam unlocks.`
-                            : !exam.ok && exam.reason === "unverified"
-                              ? "All courses done! The exam unlocks as soon as our team verifies your ID document."
-                            : eligible
-                              ? "The exam for this program is coming soon."
-                              : `Finish ${inProgram.length - done.length} more course(s) to unlock the exam.`}
-                        </p>
-                      )}
-                    </div>
-                  </article>
+                      </div>
+                    </Link>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
-        </section>
+        </Panel>
 
-        <div className="grid gap-6">
-          <section className="card p-6">
-            <h2 className="font-display text-lg font-semibold text-navy-900">Pending requests</h2>
-            {requested.length ? (
-              <ul className="mt-4 divide-y divide-slate-100">
-                {requested.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                    <Link href={`/courses/${c.id}`} className="font-medium text-navy-900 hover:text-brand-ink">{c.title}</Link>
-                    <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">Awaiting assignment</span>
-                  </li>
+        <div className="min-w-0 space-y-6">
+          <Panel title="Resume upgrade" action={<Pill tone={resume.tone}>{resume.label}</Pill>}>
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-accent-strong"><IconFile className="h-5 w-5" /></span>
+              <p className="text-sm text-slate-600">{resume.text}</p>
+            </div>
+            <Link href="/my-learning/resume" className="btn-secondary mt-4 w-full py-2 text-sm">{resume.label === "Ready" ? "Compare and download" : "View details"}</Link>
+          </Panel>
+
+          <Panel title="Payments" action={<Pill tone={due.length ? "amber" : "green"}>{due.length ? `${due.length} pending` : "All clear"}</Pill>}>
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-brand-ink"><IconWallet className="h-5 w-5" /></span>
+              <p className="text-sm text-slate-600">
+                {due.length
+                  ? `${formatINR(due.reduce((n, r) => n + r.amountDue, 0))} due for ${due.map((r) => r.program.title).join(", ")}.`
+                  : payments.length ? "All your program fees are settled." : "You have no premium program fees."}
+              </p>
+            </div>
+            <Link href="/my-learning/payments" className="btn-secondary mt-4 w-full py-2 text-sm">View payments</Link>
+          </Panel>
+
+          {readyExams.length > 0 && (
+            <Panel title="Exams ready">
+              <ul className="space-y-2">
+                {readyExams.map((p) => (
+                  <li key={p.id}><Link href={`/certifications/${p.id}/exam`} className="flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:underline"><IconTimer className="h-4 w-4" /> {p.title}</Link></li>
                 ))}
               </ul>
-            ) : (
-              <p className="mt-3 text-sm text-slate-500">No pending requests.</p>
-            )}
-          </section>
+            </Panel>
+          )}
         </div>
-
-        <p className="flex items-center justify-center gap-2 text-xs text-slate-500">
-          <IconShield className="h-4 w-4" /> Your documents are private. <Link href="/onboarding" className="font-semibold text-brand-ink hover:underline">View or update profile</Link>
-        </p>
       </div>
-    </>
+    </div>
   );
 }
 
 export default function MyLearningPage({ searchParams }: PageProps<"/my-learning">) {
-  return (
-    <>
-      <SiteHeader />
-      <main className="flex-1 bg-slate-50">
-        <Suspense fallback={<div className="h-72 animate-pulse bg-navy-900" />}>
-          <Dashboard searchParams={searchParams} />
-        </Suspense>
-      </main>
-      <Footer />
-    </>
-  );
+  return <Suspense fallback={portalSkeleton}><Overview searchParams={searchParams} /></Suspense>;
 }
