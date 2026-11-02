@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconBadge, IconBook, IconPencil, IconPhone, IconShield, IconSignal, IconUsers } from "@/components/Icons";
+import { IconBadge, IconBook, IconFile, IconPencil, IconPhone, IconShield, IconSignal, IconTag, IconUsers } from "@/components/Icons";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: IconSignal },
@@ -10,6 +10,8 @@ const items = [
   { href: "/admin/users", label: "Learners", icon: IconUsers },
   { href: "/admin/programs", label: "Programs & Exams", icon: IconBadge },
   { href: "/admin/courses", label: "Courses", icon: IconBook },
+  { href: "/admin/notes", label: "PDF notes", icon: IconFile },
+  { href: "/admin/promo-codes", label: "Promo codes", icon: IconTag },
   { href: "/admin/settings", label: "Site & certificate", icon: IconPencil },
 ];
 

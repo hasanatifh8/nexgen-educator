@@ -33,6 +33,9 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
   if (course.disabled && !(user?.isAdmin || user?.assignedCourses.includes(course.id))) notFound();
 
   const here = `/courses/${course.id}`;
+  const paid = course.price > 0;
+  // Paid courses go through checkout, so sign-up and profile completion land the learner there.
+  const enrollPath = paid ? `/checkout/${course.id}` : here;
   const unlocked = !!user && canAccessCourse(user, course.id);
   const hasRequested = !!user?.requests.some((r) => r.courseId === course.id);
   const prog = courseProgress(course, user?.progress[course.id]);
@@ -121,34 +124,48 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                 {!user ? (
                   <>
                     <p className="mt-4 font-display text-xl font-bold">Enroll in this course</p>
-                    <p className="mt-1 text-sm text-slate-600">Create a free account, complete your profile and our team will assign the course to you.</p>
-                    <Link href={`/register?next=${encodeURIComponent(here)}`} className="btn-primary mt-6 w-full py-3.5 text-base">Register to enroll</Link>
-                    <Link href={`/login?next=${encodeURIComponent(here)}`} className="btn-secondary mt-3 w-full">I already have an account</Link>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {paid
+                        ? "Create a free account and complete your profile. Then confirm your enrollment — there is nothing to pay online."
+                        : "Create a free account, complete your profile and our team will assign the course to you."}
+                    </p>
+                    <Link href={`/register?next=${encodeURIComponent(enrollPath)}`} className="btn-primary mt-6 w-full py-3.5 text-base">Register to enroll</Link>
+                    <Link href={`/login?next=${encodeURIComponent(enrollPath)}`} className="btn-secondary mt-3 w-full">I already have an account</Link>
                   </>
                 ) : !user.profileComplete ? (
                   <>
                     <p className="mt-4 font-display text-xl font-bold">One step left</p>
                     <p className="mt-1 text-sm text-slate-600">Complete your profile (ID and CV) so our team can verify you and assign this course.</p>
-                    <Link href={`/onboarding?next=${encodeURIComponent(here)}`} className="btn-primary mt-6 w-full py-3.5 text-base">Complete my profile</Link>
+                    <Link href={`/onboarding?next=${encodeURIComponent(enrollPath)}`} className="btn-primary mt-6 w-full py-3.5 text-base">Complete my profile</Link>
                   </>
                 ) : hasRequested ? (
                   <>
-                    <p className="mt-4 flex items-center gap-2 font-display text-xl font-bold"><IconCheck className="h-5 w-5 text-emerald-600" /> Access requested</p>
+                    <p className="mt-4 flex items-center gap-2 font-display text-xl font-bold"><IconCheck className="h-5 w-5 text-emerald-600" /> {paid ? "Enrollment requested" : "Access requested"}</p>
                     <p className="mt-1 text-sm text-slate-600">
-                      {requested ? "Thanks! " : ""}Our team will review your request{course.price > 0 ? " and contact you about the course fee" : ""}. The course unlocks as soon as it’s assigned.
+                      {requested ? "Thanks! " : ""}
+                      {paid
+                        ? "Our representative will call you for a short telephonic round. The course is assigned to you after the call."
+                        : "Our team will review your request. The course unlocks as soon as it’s assigned."}
                     </p>
-                    <Link href="/my-learning" className="btn-secondary mt-6 w-full">Go to My Learning</Link>
+                    <Link href={`/my-learning/requests/${course.id}`} className="btn-secondary mt-6 w-full">View my request</Link>
                   </>
                 ) : (
                   <>
-                    <p className="mt-4 font-display text-xl font-bold">Request this course</p>
+                    <p className="mt-4 font-display text-xl font-bold">{paid ? "Enroll in this course" : "Request this course"}</p>
                     <p className="mt-1 text-sm text-slate-600">
-                      Part of <span className="font-semibold text-navy-900">{program.title}</span>. Courses are assigned by our team{course.price > 0 ? " after the course fee is confirmed" : ""}.
+                      Part of <span className="font-semibold text-navy-900">{program.title}</span>.{" "}
+                      {paid
+                        ? "Nothing to pay online: confirm your enrollment, and our representative will call you before the course is assigned."
+                        : "Courses are assigned by our team."}
                     </p>
-                    <form action={requestAccessAction}>
-                      <input type="hidden" name="courseId" value={course.id} />
-                      <button type="submit" className="btn-primary mt-6 w-full py-3.5 text-base">Request access</button>
-                    </form>
+                    {paid ? (
+                      <Link href={enrollPath} className="btn-primary mt-6 w-full py-3.5 text-base">Enroll now <IconArrowRight className="h-4 w-4" /></Link>
+                    ) : (
+                      <form action={requestAccessAction}>
+                        <input type="hidden" name="courseId" value={course.id} />
+                        <button type="submit" className="btn-primary mt-6 w-full py-3.5 text-base">Request access</button>
+                      </form>
+                    )}
                   </>
                 )}
                 <div className="mt-5 border-t border-slate-100 pt-4 text-center">

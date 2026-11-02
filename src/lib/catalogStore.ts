@@ -3,7 +3,9 @@ import { cache } from "react";
 import { SEED_CATALOG, type Block, type Catalog, type Course, type Exam, type Module, type Program } from "./catalog";
 import { EMPTY_CONTENT, SEED_CONTENT } from "./seedContent";
 import { INTRO_AI_COURSE, INTRO_AI_PROGRAM } from "./seed/introAiCourse";
-import { getJson, setJson } from "./store";
+import { JOYFUL_COURSE, JOYFUL_PROGRAM } from "./seed/joyfulEarlyYears";
+import { SCIENCE_COURSE, SCIENCE_PROGRAM } from "./seed/scienceAiEducators";
+import { getJson, setJson, withLock } from "./store";
 
 /** Programs and courses, stored as one document (Postgres in production, data/catalog.json locally — see ./store). */
 const CATALOG_KEY = "catalog";
@@ -32,15 +34,55 @@ function withPricing(programs: Program[], courses: (Partial<Course> & Pick<Cours
   };
 }
 
+/**
+ * Courses shipped in code after the site went live. Each pack is added to the stored catalog exactly once
+ * (recorded under PACKS_KEY), so deploying makes it appear on the live site, while later admin edits —
+ * including deleting it — are never undone. Only the catalog changes; user accounts are not touched.
+ */
+const PACKS_KEY = "catalog-packs";
+const PACKS: { id: string; programs: Program[]; courses: Course[] }[] = [
+  { id: "joyful-early-years-2026-11", programs: [JOYFUL_PROGRAM], courses: [JOYFUL_COURSE] },
+  { id: "science-educators-2026-11", programs: [SCIENCE_PROGRAM], courses: [SCIENCE_COURSE] },
+];
+
+/** Once a server instance has seen every pack installed, it stops checking. */
+let packsInstalled = false;
+
+async function installPacks(raw: Catalog): Promise<Catalog> {
+  if (packsInstalled) return raw;
+  const installed = (await getJson<string[]>(PACKS_KEY)) ?? [];
+  if (PACKS.every((p) => installed.includes(p.id))) {
+    packsInstalled = true;
+    return raw;
+  }
+  return withLock(PACKS_KEY, async () => {
+    const done = (await getJson<string[]>(PACKS_KEY)) ?? [];
+    const catalog = (await getJson<Catalog>(CATALOG_KEY)) ?? raw;
+    for (const pack of PACKS.filter((p) => !done.includes(p.id))) {
+      for (const p of pack.programs) if (!catalog.programs.some((x) => x.id === p.id)) catalog.programs.push(structuredClone(p));
+      for (const c of pack.courses) if (!catalog.courses.some((x) => x.id === c.id)) catalog.courses.push(structuredClone(c));
+      done.push(pack.id);
+    }
+    await setJson(CATALOG_KEY, catalog);
+    await setJson(PACKS_KEY, done);
+    packsInstalled = true;
+    return catalog;
+  });
+}
+
 async function readCatalog(): Promise<Catalog> {
   const raw = await getJson<Catalog>(CATALOG_KEY);
-  if (raw) return withPricing(raw.programs, raw.courses);
+  if (raw) {
+    const catalog = await installPacks(raw);
+    return withPricing(catalog.programs, catalog.courses);
+  }
   // The free intro course leads the catalog as the featured starting point.
   const seeded = withPricing(
-    [structuredClone(INTRO_AI_PROGRAM), ...structuredClone(SEED_CATALOG.programs)],
-    [structuredClone(INTRO_AI_COURSE), ...structuredClone(SEED_CATALOG.courses)],
+    [structuredClone(INTRO_AI_PROGRAM), ...structuredClone(SEED_CATALOG.programs), ...PACKS.flatMap((p) => structuredClone(p.programs))],
+    [structuredClone(INTRO_AI_COURSE), ...structuredClone(SEED_CATALOG.courses), ...PACKS.flatMap((p) => structuredClone(p.courses))],
   );
   await writeCatalog(seeded);
+  await setJson(PACKS_KEY, PACKS.map((p) => p.id));
   return seeded;
 }
 

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { PASSWORD_RULES } from "@/app/register/validation";
 import { passwordResetEmail } from "@/lib/emails";
-import { appUrl, sendMail } from "@/lib/mailer";
+import { emailBrand, sendMail } from "@/lib/mailer";
 import { clientIp, hit } from "@/lib/rateLimit";
 import { LIMITS, isEmail } from "@/lib/validation";
 import { createPasswordResetToken, resetPasswordWithToken } from "@/lib/users";
@@ -19,10 +19,10 @@ export async function requestPasswordReset(_prev: ForgotState, formData: FormDat
   }
 
   const result = await createPasswordResetToken(email);
-  const base = await appUrl();
-  if (result && base) {
-    const link = `${base}/reset-password?token=${result.token}`;
-    await sendMail({ to: result.user.email, ...passwordResetEmail(result.user.firstName, link) });
+  const brand = await emailBrand();
+  if (result && brand) {
+    const link = `${brand.base}/reset-password?token=${result.token}`;
+    await sendMail({ to: result.user.email, ...passwordResetEmail(result.user.firstName, brand, link) });
   } else if (result) {
     console.error("[password-reset] APP_URL is not set; cannot build a reset link.");
   }

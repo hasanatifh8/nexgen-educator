@@ -10,4 +10,5 @@ export const CATEGORY_ACCENT: Record<Category, string> = {
   "AI Tools for Teachers": "from-brand to-brand-teal",
   "Assessment Design": "from-navy-800 to-brand",
   "Classroom Management": "from-accent to-amber-400",
+  "Early Years & Primary": "from-pink-500 to-amber-400",
 };

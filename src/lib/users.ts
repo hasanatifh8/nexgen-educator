@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
+import type { AppliedPromo, CallPreference } from "./enrollment";
 import { getJson, setJson, withLock } from "./store";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: string, keylen: number) => Promise<Buffer>;
@@ -34,14 +35,18 @@ export type StoredUser = {
   /** Course ids an admin has assigned — the only courses whose material this learner can open. */
   assignedCourses: string[];
   /** Courses the learner asked an admin to assign. */
-  requests: { courseId: string; at: string }[];
+  requests: CourseRequest[];
   /** Every certification-exam attempt; each attempt can be submitted once. */
   examAttempts: ExamAttempt[];
   /** courseId → payment recorded by an admin (there is no online checkout yet). Older records are keyed by programId. */
   payments?: Record<string, PaymentRecord>;
+  /** courseId → promo code applied at checkout; the learner's fee for that course is discounted by it. */
+  promos?: Record<string, AppliedPromo>;
   /** The resume our team rewrites from the learner's CV after they complete a course. */
   resumeService?: ResumeService;
 };
+
+export type CourseRequest = { courseId: string; at: string; call?: CallPreference };
 
 export const PAYMENT_STATUSES = ["pending", "paid", "waived"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
@@ -348,10 +353,20 @@ export async function setResumeService(userId: string, service: ResumeService) {
   });
 }
 
-export async function requestCourse(userId: string, courseId: string) {
+/**
+ * Records a course request. Confirming checkout again updates the call preference without resetting the date.
+ * `promo: null` removes a previously applied code; `undefined` leaves it as it is.
+ */
+export async function requestCourse(userId: string, courseId: string, call?: CallPreference, promo?: AppliedPromo | null) {
   return updateUser(userId, (u) => {
-    if (!u.assignedCourses.includes(courseId) && !u.requests.some((r) => r.courseId === courseId)) {
-      u.requests.push({ courseId, at: new Date().toISOString() });
+    if (u.assignedCourses.includes(courseId)) return;
+    if (promo) u.promos = { ...u.promos, [courseId]: promo };
+    else if (promo === null && u.promos?.[courseId]) delete u.promos[courseId];
+    const existing = u.requests.find((r) => r.courseId === courseId);
+    if (existing) {
+      if (call) existing.call = call;
+    } else {
+      u.requests.push({ courseId, at: new Date().toISOString(), ...(call ? { call } : {}) });
     }
   });
 }

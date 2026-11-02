@@ -33,12 +33,19 @@ function CourseAction({ course, viewer, percent, done }: { course: CourseSummary
       </Link>
     );
   }
+  const paid = course.price > 0;
+  const checkout = `/checkout/${course.id}`;
   if (!viewer.profileComplete) {
-    return <Link href={`/onboarding?next=${encodeURIComponent(href)}`} className="btn mt-5 w-full bg-navy-900 text-white hover:bg-navy-800">Complete profile to enroll</Link>;
+    return <Link href={`/onboarding?next=${encodeURIComponent(paid ? checkout : href)}`} className="btn mt-5 w-full bg-navy-900 text-white hover:bg-navy-800">Complete profile to enroll</Link>;
   }
   if (viewer.requested.includes(course.id)) {
-    return <span className="btn mt-5 w-full cursor-default bg-amber-50 text-amber-800 ring-1 ring-amber-200"><IconCheck className="h-4 w-4" /> Access requested</span>;
+    return (
+      <Link href={`/my-learning/requests/${course.id}`} className="btn mt-5 w-full bg-amber-50 text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100">
+        <IconCheck className="h-4 w-4" /> {paid ? "Enrollment requested" : "Access requested"}
+      </Link>
+    );
   }
+  if (paid) return <Link href={checkout} className="btn mt-5 w-full bg-navy-900 text-white hover:bg-navy-800">Enroll now</Link>;
   return (
     <form action={requestAccessAction} className="mt-5">
       <input type="hidden" name="courseId" value={course.id} />

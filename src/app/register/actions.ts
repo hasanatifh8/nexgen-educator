@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { welcomeEmail } from "@/lib/emails";
-import { appUrl, sendMail } from "@/lib/mailer";
+import { emailBrand, sendMail } from "@/lib/mailer";
 import { safeNextPath } from "@/lib/sessionToken";
 import { createUser } from "@/lib/users";
 import { readRegisterForm, validateRegistration, type RegisterState } from "./validation";
@@ -43,8 +43,8 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
     };
   }
 
-  const base = await appUrl();
-  if (base) await sendMail({ to: user.email, ...welcomeEmail(user.firstName, base) });
+  const brand = await emailBrand();
+  if (brand) await sendMail({ to: user.email, ...welcomeEmail(user.firstName, brand) });
 
   // Confirm the account, then ask the learner to log in; login routes them to profile completion.
   const next = safeNextPath(formData.get("next"));

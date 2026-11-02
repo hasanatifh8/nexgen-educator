@@ -10,12 +10,17 @@ import { getCurrentUser } from "@/lib/dal";
 import { saveSettings } from "@/lib/settings";
 import { normalizeSiteUrl, type SiteSettings } from "@/lib/siteSettings";
 import { formatINR } from "@/lib/catalog";
+import { isEmail } from "@/lib/validation";
 import { fmtDate } from "@/lib/learner";
-import { deleteUpload, saveUpload } from "@/lib/uploads";
-import { PAYMENT_STATUSES, RESUME_STATUSES, findUserById, setAssignedCourses, setPayment, setResumeService, setVerification, type PaymentStatus, type ResumeStatus } from "@/lib/users";
+import { NOTES_OWNER, deleteUpload, saveUpload } from "@/lib/uploads";
+import { MAX_NOTE_BYTES, MAX_NOTE_LABEL } from "@/lib/uploadLimits";
+import { createNote, deleteNote, getNote, setNoteAssignees, setUserNotes, updateNote } from "@/lib/notes";
+import { createPromoCode, deletePromoCode, setPromoActive } from "@/lib/promo";
+import { PROMO_CODE_RE, normalizePromoCode } from "@/lib/enrollment";
+import { PAYMENT_STATUSES, RESUME_STATUSES, findUserById, listUsers, setAssignedCourses, setPayment, setResumeService, setVerification, type PaymentStatus, type ResumeStatus } from "@/lib/users";
 import { getCatalog } from "@/lib/catalogStore";
-import { courseApprovedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
-import { appUrl, sendMail } from "@/lib/mailer";
+import { courseApprovedEmail, notesSharedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
+import { emailBrand, sendMail } from "@/lib/mailer";
 import { ENQUIRY_STATUSES, updateEnquiry, type EnquiryStatus } from "@/lib/enquiries";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string> };
@@ -235,9 +240,9 @@ export async function saveAssignmentsAction(fd: FormData) {
 
   // Tell the learner about newly approved courses only, not ones they already had.
   const added = courses.filter((c) => chosen.includes(c.id) && !before.assignedCourses.includes(c.id));
-  const base = await appUrl();
-  if (added.length && base) {
-    await sendMail({ to: before.email, ...courseApprovedEmail(before.firstName, base, added) });
+  const brand = await emailBrand();
+  if (added.length && brand) {
+    await sendMail({ to: before.email, ...courseApprovedEmail(before.firstName, brand, added) });
   }
   redirect(`/admin/users/${userId}?saved=assignments`);
 }
@@ -284,12 +289,12 @@ export async function savePaymentAction(fd: FormData) {
   await setPayment(userId, courseId, { status, ...(paid ? { amount, reference, paidAt } : {}), updatedAt: new Date().toISOString() });
 
   // Receipt email only when the payment is newly confirmed.
-  const base = await appUrl();
+  const brand = await emailBrand();
   const previous = user.payments?.[courseId] ?? user.payments?.[course.programId];
-  if (paid && previous?.status !== "paid" && base) {
+  if (paid && previous?.status !== "paid" && brand) {
     await sendMail({
       to: user.email,
-      ...paymentReceivedEmail(user.firstName, base, { courseTitle: course.title, amount: formatINR(amount ?? 0), reference, date: fmtDate(paidAt!) }),
+      ...paymentReceivedEmail(user.firstName, brand, { courseTitle: course.title, amount: formatINR(amount ?? 0), reference, date: fmtDate(paidAt!) }),
     });
   }
   back();
@@ -331,9 +336,9 @@ export async function saveResumeAction(fd: FormData) {
   if (newFile && prev?.file) await deleteUpload(user.id, prev.file);
 
   // Tell the learner when the resume is first delivered, or when a delivered resume is replaced.
-  const base = await appUrl();
-  if (status === "delivered" && (prev?.status !== "delivered" || newFile) && base) {
-    await sendMail({ to: user.email, ...resumeReadyEmail(user.firstName, base) });
+  const brand = await emailBrand();
+  if (status === "delivered" && (prev?.status !== "delivered" || newFile) && brand) {
+    await sendMail({ to: user.email, ...resumeReadyEmail(user.firstName, brand) });
   }
   back();
 }
@@ -365,6 +370,8 @@ export async function saveSettingsAction(_prev: SettingsState, fd: FormData): Pr
     secondSignatoryName: str(fd, "secondSignatoryName"),
     secondSignatoryTitle: str(fd, "secondSignatoryTitle"),
     certificateNote: str(fd, "certificateNote"),
+    supportEmail: str(fd, "supportEmail").toLowerCase(),
+    supportPhone: str(fd, "supportPhone"),
   };
   const e: Record<string, string> = {};
   if (siteUrl === null) e.siteUrl = "Enter a full address like https://www.yourdomain.com (no ?query or #hash).";
@@ -373,9 +380,130 @@ export async function saveSettingsAction(_prev: SettingsState, fd: FormData): Pr
   if (next.signatoryTitle.length < 2 || next.signatoryTitle.length > 50) e.signatoryTitle = "2–50 characters.";
   if (next.secondSignatoryName.length > 40) e.secondSignatoryName = "Up to 40 characters.";
   if (next.secondSignatoryName && (next.secondSignatoryTitle.length < 2 || next.secondSignatoryTitle.length > 50)) e.secondSignatoryTitle = "Add a title (2–50 characters).";
+  if (next.supportEmail && !isEmail(next.supportEmail)) e.supportEmail = "Enter a valid email address, or leave it blank.";
+  if (next.supportPhone && !/^\+?[\d\s-]{8,20}$/.test(next.supportPhone)) e.supportPhone = "Enter a phone number using digits, spaces, + or - (8–20 characters).";
   if (next.certificateNote.length > 160) e.certificateNote = "Keep it under 160 characters so it fits on one line.";
   if (Object.keys(e).length) return { error: "Please fix the highlighted fields.", fieldErrors: e };
   if (!next.secondSignatoryName) next.secondSignatoryTitle = "";
   await saveSettings(next);
   return { ok: true };
+}
+
+// --- PDF notes -------------------------------------------------------------------
+
+const NOTE_LIMIT = { bytes: MAX_NOTE_BYTES, label: MAX_NOTE_LABEL };
+
+async function noteDetails(fd: FormData, back: (error: string) => never) {
+  const title = str(fd, "title");
+  const description = str(fd, "description") || undefined;
+  const courseId = str(fd, "courseId") || undefined;
+  if (title.length < 3 || title.length > 120) back("Give the notes a title of 3–120 characters.");
+  if (description && description.length > 500) back("Keep the description under 500 characters.");
+  if (courseId && !(await getCourse(courseId))) back("Choose a course from the list, or leave it blank.");
+  return { title, description, courseId };
+}
+
+/** Emails each learner once, listing the notes newly shared with them. */
+async function emailNewNotes(byUser: Map<string, { title: string }[]>) {
+  const brand = await emailBrand();
+  if (!brand) return;
+  for (const [userId, notes] of byUser) {
+    const user = await findUserById(userId);
+    if (user && notes.length) await sendMail({ to: user.email, ...notesSharedEmail(user.firstName, brand, notes) });
+  }
+}
+
+export async function createNoteAction(fd: FormData) {
+  await assertAdmin();
+  const back = (error: string): never => redirect(`/admin/notes?error=${encodeURIComponent(error)}`);
+  const details = await noteDetails(fd, back);
+  const upload = fd.get("file");
+  const r = await saveUpload(NOTES_OWNER, "note", upload instanceof File ? upload : null, ["pdf"], "PDF", NOTE_LIMIT);
+  if ("error" in r) back(r.error);
+  else {
+    const note = await createNote({ ...details, file: r.file });
+    redirect(`/admin/notes/${note.id}?saved=new`);
+  }
+}
+
+export async function updateNoteAction(fd: FormData) {
+  await assertAdmin();
+  const id = str(fd, "id");
+  const back = (error: string): never => redirect(`/admin/notes/${id}?error=${encodeURIComponent(error)}`);
+  if (!(await getNote(id))) redirect("/admin/notes");
+  const details = await noteDetails(fd, back);
+  const upload = fd.get("file");
+  let file;
+  if (upload instanceof File && upload.size > 0) {
+    const r = await saveUpload(NOTES_OWNER, "note", upload, ["pdf"], "PDF", NOTE_LIMIT);
+    if ("error" in r) back(r.error);
+    else file = r.file;
+  }
+  await updateNote(id, { ...details, file });
+  redirect(`/admin/notes/${id}?saved=details`);
+}
+
+export async function deleteNoteAction(fd: FormData) {
+  await assertAdmin();
+  await deleteNote(str(fd, "id"));
+  redirect("/admin/notes?deleted=1");
+}
+
+/** From a note's page: choose which learners can open it. */
+export async function assignNoteAction(fd: FormData) {
+  await assertAdmin();
+  const id = str(fd, "id");
+  const learners = new Set((await listUsers()).map((u) => u.id));
+  const ids = fd.getAll("userIds").map(String).filter((u) => learners.has(u));
+  const r = await setNoteAssignees(id, ids);
+  if (!r) redirect("/admin/notes");
+  if (fd.get("notify") === "on") await emailNewNotes(new Map(r.added.map((u) => [u, [{ title: r.note.title }]])));
+  redirect(`/admin/notes/${id}?saved=assigned`);
+}
+
+/** From a learner's page: choose which notes they can open. */
+export async function assignUserNotesAction(fd: FormData) {
+  await assertAdmin();
+  const userId = str(fd, "userId");
+  if (!(await findUserById(userId))) redirect("/admin/users");
+  const added = await setUserNotes(userId, fd.getAll("noteIds").map(String));
+  if (fd.get("notify") === "on") await emailNewNotes(new Map([[userId, added.map((n) => ({ title: n.title }))]]));
+  redirect(`/admin/users/${userId}?saved=notes#notes`);
+}
+
+// --- Promo codes -----------------------------------------------------------------
+
+export async function createPromoAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  await assertAdmin();
+  const code = normalizePromoCode(str(fd, "code"));
+  const percent = Number(str(fd, "percent"));
+  const expiresOn = str(fd, "expiresOn") || undefined;
+  const maxUsesRaw = str(fd, "maxUses");
+  const maxUses = maxUsesRaw ? Number(maxUsesRaw) : undefined;
+  const note = str(fd, "note").slice(0, 120) || undefined;
+
+  const e: Record<string, string> = {};
+  if (!PROMO_CODE_RE.test(code)) e.code = "Use 3–20 letters, digits, dashes or underscores, e.g. JACK50.";
+  if (!Number.isInteger(percent) || percent < 1 || percent > 100) e.percent = "Enter a whole number from 1 to 100.";
+  if (expiresOn && (!/^\d{4}-\d{2}-\d{2}$/.test(expiresOn) || Number.isNaN(Date.parse(expiresOn)))) e.expiresOn = "Choose a valid date.";
+  if (maxUses !== undefined && (!Number.isInteger(maxUses) || maxUses < 1 || maxUses > 100000)) e.maxUses = "Enter a whole number of 1 or more, or leave it blank.";
+  if (Object.keys(e).length) return { error: "Please fix the highlighted fields.", fieldErrors: e };
+
+  const error = await createPromoCode({ code, percent, expiresOn, maxUses, note });
+  if (error) return { error, fieldErrors: { code: error } };
+  redirect(`/admin/promo-codes?saved=${encodeURIComponent(code)}`);
+}
+
+export async function setPromoActiveAction(fd: FormData) {
+  await assertAdmin();
+  const code = str(fd, "code");
+  const active = str(fd, "active") === "1";
+  await setPromoActive(code, active);
+  redirect(`/admin/promo-codes?${active ? "enabled" : "paused"}=${encodeURIComponent(code)}`);
+}
+
+export async function deletePromoAction(fd: FormData) {
+  await assertAdmin();
+  await deletePromoCode(str(fd, "id"));
+  redirect("/admin/promo-codes?deleted=1");
 }

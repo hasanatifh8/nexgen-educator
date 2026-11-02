@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
-import { IconCheck, IconDownload, IconX } from "@/components/Icons";
-import { coursesFor, formatINR } from "@/lib/catalog";
-import { PAYMENT_LABEL, paymentRows, resumeStage } from "@/lib/learner";
+import { IconCheck, IconDownload, IconPhone, IconX } from "@/components/Icons";
+import { coursesFor, formatINR, priceWithGst } from "@/lib/catalog";
+import { CALL_SLOTS } from "@/lib/enrollment";
+import { PAYMENT_LABEL, learnerFee, paymentRows, resumeStage } from "@/lib/learner";
 import { isCourseComplete } from "@/lib/access";
 import { getCatalog } from "@/lib/catalogStore";
 import { isAdminEmail, requireAdmin } from "@/lib/dal";
 import { findUserById } from "@/lib/users";
-import { reviewProfileAction, savePaymentAction, saveResumeAction } from "../../actions";
+import { listNotes } from "@/lib/notes";
+import PickList from "../../notes/PickList";
+import { assignUserNotesAction, reviewProfileAction, savePaymentAction, saveResumeAction } from "../../actions";
 import { AccessDenied, Flash, adminSkeleton, one } from "../../ui";
 import { ProfileBadge } from "../badges";
 import AssignmentForm from "./AssignmentForm";
@@ -32,7 +35,7 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
   const sp = await searchParams;
   const user = await findUserById(id);
   if (!user || isAdminEmail(user.email)) notFound();
-  const { programs, courses } = await getCatalog();
+  const [{ programs, courses }, notes] = await Promise.all([getCatalog(), listNotes()]);
 
   const p = user.profile;
   const saved = one(sp.saved);
@@ -49,6 +52,10 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
     })),
   }));
   const requested = Object.fromEntries(user.requests.map((r) => [r.courseId, fmtDate(r.at)]));
+  // Paid-course enrollments wait for a call from our team before the course is assigned.
+  const calls = user.requests
+    .map((r) => ({ ...r, course: courses.find((c) => c.id === r.courseId) }))
+    .filter((r) => r.course && r.course.price > 0);
   const payments = paymentRows(user, { programs, courses });
   const resume = user.resumeService;
   const stage = resumeStage(user, { courses });
@@ -72,9 +79,38 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
       </div>
 
       <Flash
-        saved={saved === "payment" ? "payment" : saved === "resume" ? "resume upgrade" : saved === "assignments" ? "course assignments" : saved === "verified" ? "verification (verified)" : saved === "rejected" ? "verification (changes requested)" : undefined}
+        saved={saved === "payment" ? "payment" : saved === "resume" ? "resume upgrade" : saved === "assignments" ? "course assignments" : saved === "notes" ? "PDF notes access" : saved === "verified" ? "verification (verified)" : saved === "rejected" ? "verification (changes requested)" : undefined}
         error={one(sp.error)}
       />
+
+      {calls.length > 0 && (
+        <section className="card mt-6 border-l-4 border-l-accent-strong p-6">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-navy-900"><IconPhone className="h-5 w-5 text-accent-strong" /> Call before assigning</h2>
+          <p className="mt-1 text-sm text-slate-500">This learner enrolled in paid courses. Call them for the telephonic round, share the payment details, then record the payment and assign the course below.</p>
+          <ul className="mt-4 divide-y divide-slate-100">
+            {calls.map((r) => {
+              const phone = r.call?.phone ?? p?.phone;
+              return (
+                <li key={r.courseId} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-navy-900">{r.course!.title}</p>
+                    <p className="text-xs text-slate-500">
+                      {(() => {
+                        const f = learnerFee(user, r.course!);
+                        return f.promo ? `${formatINR(f.total)} incl. GST after promo ${f.promo.code} (${f.promo.percent}% off ${formatINR(priceWithGst(r.course!.price))})` : `${formatINR(f.total)} incl. GST`;
+                      })()} · enrolled {fmtDate(r.at)} · {r.call ? `prefers ${CALL_SLOTS[r.call.slot]}` : "no call time chosen"}
+                    </p>
+                    {r.call?.note && <p className="mt-1 text-sm text-slate-600">“{r.call.note}”</p>}
+                  </div>
+                  {phone && (
+                    <a href={`tel:+91${phone}`} className="btn shrink-0 bg-navy-900 py-2 text-sm text-white hover:bg-navy-800"><IconPhone className="h-4 w-4" /> +91 {phone}</a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.1fr]">
         <div className="space-y-6">
@@ -148,6 +184,34 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
         </section>
       </div>
 
+      <section id="notes" className="card mt-6 scroll-mt-24 p-6">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-navy-900">PDF notes</h2>
+            <p className="mt-1 text-sm text-slate-500">Tick the notes this learner can read in their portal.</p>
+          </div>
+          <Link href="/admin/notes" className="text-sm font-semibold text-brand-ink hover:underline">Upload or manage notes →</Link>
+        </div>
+        <PickList
+          key={notes.filter((n) => n.assignedTo.includes(user.id)).map((n) => n.id).join(",")}
+          action={assignUserNotesAction}
+          hidden={{ userId: user.id }}
+          name="noteIds"
+          noun="note"
+          empty="No notes uploaded yet. Upload PDFs under PDF notes, then assign them here."
+          selected={notes.filter((n) => n.assignedTo.includes(user.id)).map((n) => n.id)}
+          items={notes.map((n) => {
+            const course = n.courseId ? courses.find((c) => c.id === n.courseId) : undefined;
+            return {
+              id: n.id,
+              title: n.title,
+              sub: `${course ? `${course.title} · ` : ""}${fmtSize(n.file.size)} · uploaded ${fmtDate(n.createdAt)}`,
+              tag: course && user.assignedCourses.includes(course.id) ? "Their course" : undefined,
+            };
+          })}
+        />
+      </section>
+
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <section id="payments" className="card scroll-mt-24 p-6">
           <h2 className="font-display text-lg font-semibold text-navy-900">Payments</h2>
@@ -164,7 +228,7 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
                     <div>
                       <p className="text-sm font-semibold text-navy-900">{r.course.title}</p>
                       <p className="text-xs text-slate-500">{r.program?.title}{r.assigned ? "" : " · requested"}</p>
-                      <p className="text-xs text-slate-500">Fee {formatINR(r.amountDue)} incl. GST · {PAYMENT_LABEL[r.status]}{r.record?.updatedAt ? ` · updated ${fmtDate(r.record.updatedAt)}` : ""}</p>
+                      <p className="text-xs text-slate-500">Fee {formatINR(r.amountDue)} incl. GST{r.promo ? ` (promo ${r.promo.code}, ${r.promo.percent}% off)` : ""} · {PAYMENT_LABEL[r.status]}{r.record?.updatedAt ? ` · updated ${fmtDate(r.record.updatedAt)}` : ""}</p>
                     </div>
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">

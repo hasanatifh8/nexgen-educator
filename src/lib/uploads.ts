@@ -33,9 +33,16 @@ function sniff(buf: Buffer, name: string): Kind | null {
 
 export type UploadResult = { file: StoredFile } | { error: string };
 
-export async function saveUpload(userId: string, prefix: string, file: File | null, allowed: (keyof typeof KINDS)[], label: string): Promise<UploadResult> {
+export async function saveUpload(
+  userId: string,
+  prefix: string,
+  file: File | null,
+  allowed: (keyof typeof KINDS)[],
+  label: string,
+  limit: { bytes: number; label: string } = { bytes: MAX_UPLOAD_BYTES, label: MAX_UPLOAD_LABEL },
+): Promise<UploadResult> {
   if (!file || file.size === 0) return { error: `Upload your ${label}.` };
-  if (file.size > MAX_UPLOAD_BYTES) return { error: `${label[0].toUpperCase()}${label.slice(1)} must be ${MAX_UPLOAD_LABEL} or smaller.` };
+  if (file.size > limit.bytes) return { error: `${label[0].toUpperCase()}${label.slice(1)} must be ${limit.label} or smaller.` };
 
   const buf = Buffer.from(await file.arrayBuffer());
   const kind = sniff(buf, file.name);
@@ -58,13 +65,16 @@ export async function saveUpload(userId: string, prefix: string, file: File | nu
 
 const SAFE_NAME = /^[a-z]+-[a-f0-9]{24}\.(jpg|png|pdf|doc|docx)$/;
 const SAFE_USER = /^[a-f0-9-]{36}$/;
+/** Shared files that belong to no single learner (PDF notes) are stored under this owner instead of a user id. */
+export const NOTES_OWNER = "notes";
+const safeOwner = (owner: string) => owner === NOTES_OWNER || SAFE_USER.test(owner);
 
 export async function readUpload(userId: string, file: StoredFile) {
-  if (!SAFE_USER.test(userId) || !SAFE_NAME.test(file.stored)) return null;
+  if (!safeOwner(userId) || !SAFE_NAME.test(file.stored)) return null;
   return getFile(fileKey(userId, file.stored));
 }
 
 export async function deleteUpload(userId: string, file?: StoredFile) {
-  if (!file || !SAFE_USER.test(userId) || !SAFE_NAME.test(file.stored)) return;
+  if (!file || !safeOwner(userId) || !SAFE_NAME.test(file.stored)) return;
   await deleteFile(fileKey(userId, file.stored));
 }

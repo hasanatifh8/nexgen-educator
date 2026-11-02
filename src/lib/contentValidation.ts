@@ -80,6 +80,12 @@ export function validateBlocks(raw: unknown): { blocks: Block[] } | { error: str
         case "reflection":
           blocks.push({ id, type: "reflection", prompt: long("prompt", 500, "prompt") });
           break;
+        case "prompt":
+          blocks.push({ id, type: "prompt", title: long("title", 120, "title"), body: long("body", 4000, "prompt text") });
+          break;
+        case "activity":
+          blocks.push({ id, type: "activity", title: long("title", 120, "title"), body: long("body", 3000, "activity") });
+          break;
         case "resource":
           blocks.push({ id, type: "resource", title: long("title", 160, "title"), url: url(true), description: long("description", 400, "description", false) });
           break;

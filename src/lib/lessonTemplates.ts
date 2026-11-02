@@ -12,6 +12,8 @@ export const BLOCK_TYPES: Record<BlockType, { label: string; description: string
   scenario: { label: "Scenario", description: "Classroom case study", create: () => ({ id: uid(), type: "scenario", title: "", body: "" }) },
   quiz: { label: "Knowledge check", description: "Practice question with feedback", create: () => ({ id: uid(), type: "quiz", question: "", options: ["", "", ""], answer: 0, explanation: "" }) },
   reflection: { label: "Reflection", description: "Prompt learners to apply it", create: () => ({ id: uid(), type: "reflection", prompt: "" }) },
+  prompt: { label: "AI prompt", description: "Prompt learners can copy into an AI tool", create: () => ({ id: uid(), type: "prompt", title: "Prompt to copy", body: "" }) },
+  activity: { label: "Try it in class", description: "Hands-on practice task", create: () => ({ id: uid(), type: "activity", title: "", body: "" }) },
   resource: { label: "Resource link", description: "Download or external reading", create: () => ({ id: uid(), type: "resource", title: "", url: "", description: "" }) },
 };
 

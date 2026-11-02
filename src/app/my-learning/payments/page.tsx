@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { IconCheck, IconClock, IconInfo, IconWallet } from "@/components/Icons";
 import { formatINR, gstOn } from "@/lib/catalog";
-import { PAYMENT_LABEL, fmtDate, paymentRows } from "@/lib/learner";
+import { discountedFee } from "@/lib/enrollment";
+import { PAYMENT_LABEL, fmtDate, paymentRows, type PaymentRow } from "@/lib/learner";
 import type { PaymentStatus } from "@/lib/users";
 import { loadLearner } from "../data";
 import { Empty, PageTitle, Panel, Pill, portalSkeleton, type Tone } from "../ui";
@@ -54,7 +55,7 @@ async function Payments() {
                   <div className="mt-3 flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
                     <div>
                       <p className="font-display text-xl font-bold text-navy-900">{formatINR(r.amountDue)}</p>
-                      <p className="text-xs text-slate-500">{formatINR(r.course.price)} + {formatINR(gstOn(r.course.price))} GST</p>
+                      <p className="text-xs text-slate-500">{feeBreakdown(r)}</p>
                     </div>
                     <div className="text-right text-xs text-slate-600">
                       {r.status === "paid" ? (
@@ -83,7 +84,7 @@ async function Payments() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <p className="font-semibold text-navy-900">{formatINR(r.amountDue)}</p>
-                      <p className="text-xs text-slate-500">{formatINR(r.course.price)} + {formatINR(gstOn(r.course.price))} GST</p>
+                      <p className="text-xs text-slate-500">{feeBreakdown(r)}</p>
                     </td>
                     <td className="px-4 py-4"><Pill tone={TONE[r.status]}>{PAYMENT_LABEL[r.status]}</Pill></td>
                     <td className="px-6 py-4 text-xs text-slate-600">
@@ -113,11 +114,17 @@ async function Payments() {
       <div className="mt-6 flex gap-3 rounded-2xl bg-sky-50 p-5 text-sm text-sky-900 ring-1 ring-sky-100">
         <IconInfo className="mt-0.5 h-5 w-5 shrink-0" />
         <p>
-          Paid courses are a one-time fee per course, plus 18% GST. After you request a course, our team contacts you with payment details (UPI or bank transfer). Once the payment is confirmed, its status updates here and the course is approved for you.
+          Paid courses are a one-time fee per course, plus 18% GST. After you enroll, our representative calls you for a short telephonic round and shares the payment details (UPI or bank transfer). Once the payment is confirmed, its status updates here and the course is approved for you.
         </p>
       </div>
     </>
   );
+}
+
+/** “₹450 + ₹81 GST”, or the discounted fee and the promo code used. */
+function feeBreakdown(r: PaymentRow) {
+  const fee = discountedFee(r.course.price, r.promo?.percent);
+  return `${formatINR(fee)} + ${formatINR(gstOn(fee))} GST${r.promo ? ` · ${r.promo.code} (${r.promo.percent}% off)` : ""}`;
 }
 
 export default function PaymentsPage() {

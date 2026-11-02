@@ -39,5 +39,7 @@ export function kit() {
     const placed = [...wrong.slice(0, target), options[0], ...wrong.slice(target)];
     return { type: "quiz", question, options: placed, answer: target, explanation };
   };
-  return { lesson, mod, text, tip, note, warn, points, scenario, reflect, resource, quiz };
+  const prompt = (body: string, title = "Prompt to copy & paste"): B => ({ type: "prompt", title, body: md(body) });
+  const activity = (title: string, body: string): B => ({ type: "activity", title, body: md(body) });
+  return { lesson, mod, text, tip, note, warn, points, scenario, reflect, resource, quiz, prompt, activity };
 }

@@ -143,6 +143,18 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (b: Block) =
           </Field>
         </div>
       );
+    case "prompt":
+    case "activity":
+      return (
+        <div className="space-y-4">
+          <Field id={id("title")} label="Title">
+            <input id={id("title")} value={block.title} onChange={(e) => set({ title: e.target.value })} placeholder={block.type === "prompt" ? "e.g. Prompt to copy" : "e.g. Build a Shape Garage"} className={inputCls()} />
+          </Field>
+          <Field id={id("body")} label={block.type === "prompt" ? "Prompt text" : "What to do"} hint={block.type === "prompt" ? "Shown exactly as written, with a Copy button." : "Supports headings, lists and bold text."}>
+            <textarea id={id("body")} rows={block.type === "prompt" ? 6 : 4} value={block.body} onChange={(e) => set({ body: e.target.value })} className={`${inputCls()} ${block.type === "prompt" ? "font-mono" : ""}`} />
+          </Field>
+        </div>
+      );
     case "reflection":
       return (
         <Field id={id("prompt")} label="Reflection prompt" hint="Learners’ answers are saved privately on their own device.">

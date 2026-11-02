@@ -1,5 +1,6 @@
 import { isCourseComplete } from "./access";
-import { priceWithGst, type Catalog, type Program } from "./catalog";
+import { gstOn, priceWithGst, type Catalog, type Program } from "./catalog";
+import { discountedFee, type AppliedPromo } from "./enrollment";
 import type { PaymentRecord, PaymentStatus, StoredUser } from "./users";
 
 /** Derived learner state shared by the learner portal and the admin learner page. */
@@ -10,15 +11,23 @@ export type PaymentRow = {
   /** Assigned (enrolled) or only requested so far. */
   assigned: boolean;
   amountDue: number;
+  promo?: AppliedPromo;
   status: PaymentStatus;
   record?: PaymentRecord;
 };
+
+/** What this learner pays for a course: the listed fee, less any promo code applied at checkout, plus GST. */
+export function learnerFee(user: Pick<StoredUser, "promos">, course: { id: string; price: number }) {
+  const promo: AppliedPromo | undefined = course.price > 0 ? user.promos?.[course.id] : undefined;
+  const fee = discountedFee(course.price, promo?.percent);
+  return { listPrice: course.price, promo, discount: course.price - fee, fee, gst: gstOn(fee), total: priceWithGst(fee) };
+}
 
 /**
  * Paid courses the learner is enrolled in or has asked to join, with the payment our team recorded.
  * Payments are per course; records saved when fees were per program still cover that program's courses.
  */
-export function paymentRows(user: Pick<StoredUser, "assignedCourses" | "requests" | "payments" | "purchases">, { programs, courses }: Catalog): PaymentRow[] {
+export function paymentRows(user: Pick<StoredUser, "assignedCourses" | "requests" | "payments" | "purchases" | "promos">, { programs, courses }: Catalog): PaymentRow[] {
   const requested = new Set(user.requests.map((r) => r.courseId));
   return courses
     .filter((c) => c.price > 0 && (user.assignedCourses.includes(c.id) || requested.has(c.id) || user.payments?.[c.id]))
@@ -29,7 +38,8 @@ export function paymentRows(user: Pick<StoredUser, "assignedCourses" | "requests
         course: { id: c.id, title: c.title, price: c.price },
         program: programs.find((p) => p.id === c.programId),
         assigned: user.assignedCourses.includes(c.id),
-        amountDue: priceWithGst(c.price),
+        amountDue: learnerFee(user, c).total,
+        promo: user.promos?.[c.id],
         status,
         record,
       };

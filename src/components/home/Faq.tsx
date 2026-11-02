@@ -1,9 +1,9 @@
 import { IconChevronDown } from "../Icons";
 
 const faqs = [
-  ["Is NextGen Educator free?", "Registration is free and many courses are completely free. Paid courses have a one-time fee plus 18% GST, shown on each course — our team confirms it with you before assigning the course."],
+  ["Is NextGen Educator free?", "Registration is free and many courses are completely free. Paid courses have a one-time fee plus 18% GST, shown on each course. Nothing is paid on the website — our representative calls you first and shares the payment details."],
   ["Why do you ask for Aadhaar or PAN and my CV?", "We verify every educator so our certificates are trustworthy for schools and employers. For Aadhaar we only need the masked version (last 4 digits visible). Documents are stored privately and only authorised administrators can view them."],
-  ["How do I get access to a course?", "Browse the catalog, open any course to see its full syllabus, and click “Request access”. Once your profile is complete, our team assigns the course and it appears in My Learning."],
+  ["How do I get access to a course?", "Browse the catalog, open any course to see its full syllabus, and click “Request access” (free courses) or “Enroll now” (paid courses). For a paid course, our representative calls you for a short telephonic round first. Once your profile is complete, our team assigns the course and it appears in My Learning."],
   ["When can I take the certification exam?", "After you finish every lesson in every course of a program. The exam is timed and auto-graded, and passing gives you a QR-verified certificate instantly."],
   ["Can my school enrol a whole team?", "Yes — see “For Institutions” below for bulk enrolment, progress dashboards and custom exams."],
 ];

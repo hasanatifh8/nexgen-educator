@@ -12,6 +12,8 @@ import ProfileForm from "./ProfileForm";
 export const metadata: Metadata = { title: "Complete your profile — NextGen Educator" };
 
 const steps = ["Create account", "Complete profile", "Admin assigns courses", "Learn & get certified"];
+/** Shown when the learner is on the way to a paid-course checkout. */
+const checkoutSteps = ["Create account", "Complete profile", "Confirm enrollment", "Call with our team"];
 
 async function Onboarding({ searchParams }: { searchParams: PageProps<"/onboarding">["searchParams"] }) {
   const { next } = await searchParams;
@@ -26,7 +28,7 @@ async function Onboarding({ searchParams }: { searchParams: PageProps<"/onboardi
   return (
     <>
       <ol className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {steps.map((s, i) => {
+        {(dest?.startsWith("/checkout/") ? checkoutSteps : steps).map((s, i) => {
           const done = i === 0 || (i === 1 && !!p);
           const current = i === 1;
           return (

@@ -6,11 +6,12 @@ import { priceShort, type Category, type CourseOutline, type Level, type PublicP
 import { LEVEL_STYLES } from "@/lib/styles";
 import { IconArrowRight, IconCheck, IconClock, IconRefresh, IconSparkles } from "../Icons";
 
-const ROLES = ["Classroom teacher", "School leader", "Instructional coach", "Student teacher"] as const;
+const ROLES = ["Classroom teacher", "Preschool / primary teacher", "School leader", "Instructional coach", "Student teacher"] as const;
 const GOALS: { label: string; category: Category | null; hint: string }[] = [
   { label: "Use AI in my teaching", category: "AI Tools for Teachers", hint: "Plan faster, differentiate smarter" },
   { label: "Design better assessments", category: "Assessment Design", hint: "Rubrics, questions, feedback" },
   { label: "Run a calmer classroom", category: "Classroom Management", hint: "Routines, behavior, inclusion" },
+  { label: "Teach young children (playgroup–Class 5)", category: "Early Years & Primary", hint: "Play, phonics, hands-on maths" },
   { label: "Not sure yet", category: null, hint: "Show me the best starting points" },
 ];
 const LEVELS: { label: string; level: Level }[] = [
@@ -35,6 +36,7 @@ function recommend(courses: CourseOutline[], programs: Record<string, PublicProg
       const free = c.price === 0;
       if (free) { score += a.role === "Student teacher" || !goal.category ? 1.5 : 0.5; reasons.push("Free"); }
       if (a.role === "School leader" && c.category === "Assessment Design") score += 1;
+      if (a.role === "Preschool / primary teacher" && c.category === "Early Years & Primary") { score += 2; reasons.push("Made for early-years teachers"); }
       if (a.role === "Instructional coach" && c.level !== "Beginner") score += 0.5;
       if (c.lessonCount > 0) score += 0.5;
       return { c, score, reasons };

@@ -105,3 +105,9 @@ export const IconWallet = (p: IconProps) => (
 export const IconGrid = (p: IconProps) => (
   <svg {...base} {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
 );
+export const IconNotes = (p: IconProps) => (
+  <svg {...base} {...p}><path d="M4 5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z" /><path d="M15 3v5h5" /><path d="M8 12h8M8 16h5" /></svg>
+);
+export const IconTag = (p: IconProps) => (
+  <svg {...base} {...p}><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>
+);

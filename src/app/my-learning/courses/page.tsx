@@ -49,10 +49,13 @@ async function Courses() {
               {requested.map(({ at, course }) => (
                 <li key={course!.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <Link href={`/courses/${course!.id}`} className="font-semibold text-navy-900 hover:text-brand-ink">{course!.title}</Link>
-                    <p className="text-xs text-slate-500">{programTitle(course!.programId)} · requested {fmtDate(at)}</p>
+                    <Link href={`/my-learning/requests/${course!.id}`} className="font-semibold text-navy-900 hover:text-brand-ink">{course!.title}</Link>
+                    <p className="text-xs text-slate-500">
+                      {programTitle(course!.programId)} · requested {fmtDate(at)}
+                      {course!.price > 0 && " · our representative will call you before the course is assigned"}
+                    </p>
                   </div>
-                  <Pill tone="amber">Under review</Pill>
+                  <Pill tone="amber">{course!.price > 0 ? "Awaiting call" : "Under review"}</Pill>
                 </li>
               ))}
             </ul>

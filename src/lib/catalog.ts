@@ -2,7 +2,7 @@
  * Catalog types, seed data and pure helpers. Safe to import from client components.
  * The live catalog is read/written by `catalogStore.ts` (server only).
  */
-export const CATEGORIES = ["AI Tools for Teachers", "Assessment Design", "Classroom Management"] as const;
+export const CATEGORIES = ["AI Tools for Teachers", "Assessment Design", "Classroom Management", "Early Years & Primary"] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 export type Level = (typeof LEVELS)[number];
@@ -41,7 +41,11 @@ export type Block =
   | { id: string; type: "scenario"; title: string; body: string }
   | { id: string; type: "quiz"; question: string; options: string[]; answer: number; explanation: string }
   | { id: string; type: "reflection"; prompt: string }
-  | { id: string; type: "resource"; title: string; url: string; description?: string };
+  | { id: string; type: "resource"; title: string; url: string; description?: string }
+  /** A ready-to-copy AI prompt, shown with a Copy button. */
+  | { id: string; type: "prompt"; title: string; body: string }
+  /** A hands-on task to try in class; learners can mark it as tried. */
+  | { id: string; type: "activity"; title: string; body: string };
 
 export type BlockType = Block["type"];
 export type Lesson = { id: string; title: string; minutes: number; blocks: Block[] };
@@ -258,8 +262,11 @@ export const GST_RATE = 0.18;
 export const DEFAULT_PREMIUM_PRICE = 450;
 
 /** "₹450", "₹1,20,000" — Indian digit grouping. */
-export const formatINR = (amount: number) =>
-  `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+/** Whole rupees stay whole (₹531); amounts with paise always show two digits (₹265.50). */
+export const formatINR = (amount: number) => {
+  const paise = Math.round(amount * 100) % 100 !== 0;
+  return `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: paise ? 2 : 0, maximumFractionDigits: 2 })}`;
+};
 export const gstOn = (price: number) => Math.round(price * GST_RATE * 100) / 100;
 export const priceWithGst = (price: number) => Math.round((price + gstOn(price)) * 100) / 100;
 /** Compact label for badges: "Free" or "₹450 + GST". */

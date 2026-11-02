@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import type { Brand } from "./emails";
 import { getSettings } from "./settings";
 
 type Mail = { to: string; subject: string; text: string; html: string };
@@ -14,10 +15,12 @@ export async function sendMail(mail: Mail) {
   if (key && from) {
     // Never throws: a failed email must not undo the registration or admin action that triggered it.
     try {
+      // Replies go to the support inbox set in Admin → Site & certificate, not the sending address.
+      const { supportEmail } = await getSettings();
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html }),
+        body: JSON.stringify({ from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html, ...(supportEmail ? { reply_to: supportEmail } : {}) }),
       });
       if (!res.ok) console.error(`[mailer] Resend failed (${res.status}): ${await res.text()}`);
     } catch (e) {
@@ -45,4 +48,12 @@ export async function appUrl() {
   if (process.env.NODE_ENV === "production") return null;
   const h = await headers();
   return `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+}
+
+/** Site address plus signature details for email templates, or null when no site URL is configured. */
+export async function emailBrand(): Promise<Brand | null> {
+  const base = await appUrl();
+  if (!base) return null;
+  const { organizationName, supportEmail, supportPhone } = await getSettings();
+  return { base, organizationName, supportEmail, supportPhone };
 }

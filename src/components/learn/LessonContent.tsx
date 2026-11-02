@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Block } from "@/lib/catalog";
 import { videoEmbedUrl } from "@/lib/lessonTemplates";
-import { IconAlert, IconArrowRight, IconCheck, IconImage, IconInfo, IconLightbulb, IconLink, IconPencil, IconPlay, IconX } from "../Icons";
+import { IconAlert, IconArrowRight, IconCheck, IconImage, IconInfo, IconLightbulb, IconLink, IconPencil, IconPlay, IconSparkles, IconX } from "../Icons";
 import RichText from "./RichText";
 
 const CALLOUT = {
@@ -59,6 +59,54 @@ function Quiz({ block }: { block: Extract<Block, { type: "quiz" }> }) {
           Check answer
         </button>
       )}
+    </div>
+  );
+}
+
+function PromptCard({ block }: { block: Extract<Block, { type: "prompt" }> }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(block.body);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <div className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-card">
+      <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-white">
+        <p className="flex min-w-0 items-center gap-2 text-sm font-semibold"><IconSparkles className="h-4 w-4 shrink-0" /> <span className="truncate">{block.title || "AI prompt"}</span></p>
+        <button type="button" onClick={copy} className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg bg-white/15 px-3 text-xs font-bold ring-1 ring-white/30 hover:bg-white/25" aria-live="polite">
+          {copied ? <><IconCheck className="h-3.5 w-3.5" /> Copied</> : "Copy prompt"}
+        </button>
+      </div>
+      <p className="px-5 py-4 font-mono text-[0.9rem] leading-relaxed whitespace-pre-wrap text-slate-800">{block.body}</p>
+      <p className="border-t border-violet-100 bg-violet-50/60 px-5 py-2.5 text-xs text-violet-900">Paste into ChatGPT, Claude or Gemini. Change the details in it to match your class — and never add children’s names.</p>
+    </div>
+  );
+}
+
+function Activity({ block, storageKey }: { block: Extract<Block, { type: "activity" }>; storageKey?: string }) {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydrate from browser storage
+    if (storageKey && localStorage.getItem(storageKey) === "1") setDone(true);
+  }, [storageKey]);
+  const toggle = () => {
+    const next = !done;
+    setDone(next);
+    if (storageKey) localStorage.setItem(storageKey, next ? "1" : "0");
+  };
+  return (
+    <div className={`rounded-2xl border-2 p-6 transition-colors ${done ? "border-emerald-300 bg-emerald-50/60" : "border-amber-200 bg-amber-50/50"}`}>
+      <p className="text-xs font-bold tracking-[0.15em] text-amber-700 uppercase">Try it in class</p>
+      {block.title && <p className="mt-1 font-display text-lg font-semibold text-navy-900">{block.title}</p>}
+      <RichText text={block.body} className="mt-2 !text-[0.95rem]" />
+      <button type="button" onClick={toggle} aria-pressed={done} className={`btn mt-4 min-h-11 ${done ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-amber-300 bg-white text-amber-900 hover:bg-amber-100"}`}>
+        {done ? <><IconCheck className="h-4 w-4" /> I tried this</> : "Mark as tried"}
+      </button>
     </div>
   );
 }
@@ -170,6 +218,12 @@ export function BlockView({ block, storagePrefix }: { block: Block; storagePrefi
 
     case "reflection":
       return <Reflection block={block} storageKey={storagePrefix ? `${storagePrefix}:${block.id}` : undefined} />;
+
+    case "prompt":
+      return <PromptCard block={block} />;
+
+    case "activity":
+      return <Activity block={block} storageKey={storagePrefix ? `${storagePrefix}:${block.id}` : undefined} />;
 
     case "resource":
       return (

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconBadge, IconBook, IconFile, IconHome, IconUser, IconWallet } from "@/components/Icons";
+import { IconBadge, IconBook, IconFile, IconHome, IconNotes, IconUser, IconWallet } from "@/components/Icons";
 
 export const PORTAL_LINKS = [
   { href: "/my-learning", label: "Overview", short: "Home", icon: IconHome },
   { href: "/my-learning/courses", label: "My courses", short: "Courses", icon: IconBook },
-  { href: "/my-learning/certificates", label: "Certificates", short: "Certificates", icon: IconBadge },
+  { href: "/my-learning/notes", label: "My notes", short: "Notes", icon: IconNotes },
+  { href: "/my-learning/certificates", label: "Certificates", short: "Certs", icon: IconBadge },
   { href: "/my-learning/resume", label: "Resume upgrade", short: "Resume", icon: IconFile },
   { href: "/my-learning/payments", label: "Payments", short: "Payments", icon: IconWallet },
   { href: "/my-learning/profile", label: "My profile", short: "Profile", icon: IconUser },
@@ -20,7 +21,7 @@ export function PortalTabBar() {
   const pathname = usePathname();
   return (
     <nav aria-label="Learner portal" className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-      <ul className="grid grid-cols-6">
+      <ul className="grid grid-cols-7">
         {PORTAL_LINKS.map(({ href, short, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (
@@ -30,7 +31,7 @@ export function PortalTabBar() {
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-14 flex-col items-center justify-center gap-1 px-0.5 text-[10px] leading-none font-semibold tracking-tight min-[380px]:text-[11px] ${active ? "text-brand-ink" : "text-slate-500"}`}
               >
-                <span className={`grid h-7 w-11 place-items-center rounded-full transition-colors ${active ? "bg-sky-100" : ""}`}>
+                <span className={`grid h-7 w-10 place-items-center rounded-full transition-colors ${active ? "bg-sky-100" : ""}`}>
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="max-w-full">{short}</span>

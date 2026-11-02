@@ -10,6 +10,9 @@ export type SiteSettings = {
   secondSignatoryTitle: string;
   /** Small print at the bottom of every certificate. */
   certificateNote: string;
+  /** Shown in the signature of every email the site sends; replies go to supportEmail. */
+  supportEmail: string;
+  supportPhone: string;
 };
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -20,6 +23,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   secondSignatoryName: "",
   secondSignatoryTitle: "",
   certificateNote: "This credential certifies completion of professional development and does not replace a government-issued teaching licence.",
+  supportEmail: "",
+  supportPhone: "",
 };
 
 /** Normalises a base URL: https/http only, no trailing slash. Returns null when invalid. */

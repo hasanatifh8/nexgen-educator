@@ -71,6 +71,21 @@ export default function SettingsForm({ initial, envFallback }: { initial: SiteSe
           </Field>
         </section>
 
+        <section className="card space-y-5 p-6">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-navy-900">Email signature</h2>
+            <p className="mt-1 text-sm text-slate-500">Shown at the bottom of every email the website sends (welcome, course approval, receipts, password reset). Learners’ replies go to the support email.</p>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field id="supportEmail" label={<>Support email <span className="font-normal text-slate-400">(recommended)</span></>} error={fe.supportEmail} hint="An inbox your team reads, e.g. support@nextgeneducator.in">
+              <input id="supportEmail" type="email" inputMode="email" maxLength={254} placeholder="support@nextgeneducator.in" value={v.supportEmail} onChange={set("supportEmail")} className={inputCls(!!fe.supportEmail)} />
+            </Field>
+            <Field id="supportPhone" label={<>Support phone / WhatsApp <span className="font-normal text-slate-400">(optional)</span></>} error={fe.supportPhone}>
+              <input id="supportPhone" type="tel" inputMode="tel" maxLength={20} placeholder="+91 98765 43210" value={v.supportPhone} onChange={set("supportPhone")} className={inputCls(!!fe.supportPhone)} />
+            </Field>
+          </div>
+        </section>
+
         <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
           <p className="text-sm">
             {state.error && !state.ok ? <span className="font-medium text-red-600">{state.error}</span>

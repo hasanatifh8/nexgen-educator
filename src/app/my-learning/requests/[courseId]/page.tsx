@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
-import { IconArrowRight, IconBook, IconCheck, IconClock, IconSignal, IconWallet } from "@/components/Icons";
-import { allLessons, formatINR, gstOn, priceWithGst } from "@/lib/catalog";
-import { fmtDate } from "@/lib/learner";
+import { IconArrowRight, IconBook, IconCheck, IconClock, IconPencil, IconPhone, IconSignal, IconWallet } from "@/components/Icons";
+import { allLessons, formatINR } from "@/lib/catalog";
+import { CALL_SLOTS } from "@/lib/enrollment";
+import { fmtDate, learnerFee } from "@/lib/learner";
 import { CATEGORY_ACCENT } from "@/lib/styles";
 import { loadLearner } from "../../data";
 import { Pill, portalSkeleton } from "../../ui";
@@ -28,15 +29,30 @@ async function RequestSent({ params }: { params: P["params"] }) {
     .map((r) => catalog.courses.find((c) => c.id === r.courseId))
     .filter((c) => !!c);
   const verified = user.verification.status === "verified";
+  const call = request.call;
+  const phone = `+91 ${call?.phone ?? record.profile?.phone ?? ""}`;
+  const price = learnerFee(record, course);
+  const total = formatINR(price.total);
+  const changeCall = `/checkout/${course.id}?edit=1`;
 
-  const steps = [
-    { title: "Request received", text: `Submitted on ${fmtDate(request.at)}. A confirmation has been sent to ${user.email}.`, done: true },
-    { title: "Review by our team", text: verified ? "We check your request and confirm the course is right for you." : "We verify your profile documents and review your request together.", done: false },
-    ...(paid
-      ? [{ title: "Course fee", text: `Our team will contact you with payment details for the one-time fee of ${formatINR(priceWithGst(course.price))} (including GST).`, done: false }]
-      : []),
-    { title: "Course approved", text: "You receive an email, and the course appears in My courses, ready to start.", done: false },
-  ];
+  const steps = paid
+    ? [
+        { title: "Enrollment request confirmed", text: `Submitted on ${fmtDate(request.at)}. A confirmation has been sent to ${user.email}.`, done: true },
+        {
+          title: "Telephonic round",
+          text: call
+            ? `Our representative will call you on ${phone}, ${CALL_SLOTS[call.slot].toLowerCase()}, usually within 1–2 working days. It is a short call to understand your goals and confirm the course is right for you.`
+            : `Our representative will call you on ${phone}, usually within 1–2 working days, to understand your goals and confirm the course is right for you.`,
+          done: false,
+        },
+        { title: "Course fee", text: `Pay the one-time fee of ${total} (including GST) using the details shared on the call. Nothing is paid on the website.`, done: false },
+        { title: "Course assigned", text: "You receive an email, and the course appears in My courses, ready to start.", done: false },
+      ]
+    : [
+        { title: "Request received", text: `Submitted on ${fmtDate(request.at)}. A confirmation has been sent to ${user.email}.`, done: true },
+        { title: "Review by our team", text: verified ? "We check your request and confirm the course is right for you." : "We verify your profile documents and review your request together.", done: false },
+        { title: "Course approved", text: "You receive an email, and the course appears in My courses, ready to start.", done: false },
+      ];
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -46,13 +62,37 @@ async function RequestSent({ params }: { params: P["params"] }) {
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-emerald-600 shadow-lg ring-8 ring-white/20">
             <IconCheck className="h-8 w-8" />
           </span>
-          <h1 className="mt-6 font-display text-3xl font-bold sm:text-4xl">Request submitted successfully</h1>
+          <h1 className="mt-6 font-display text-3xl font-bold sm:text-4xl">{paid ? "Enrollment request confirmed" : "Request submitted successfully"}</h1>
           <p className="mx-auto mt-3 max-w-xl text-emerald-50">
-            Thank you, {user.firstName}. Your request to join <span className="font-semibold text-white">{course.title}</span> has been sent to our team.
-            {paid ? " We will be in touch about the course fee." : " Approval usually takes 1–2 working days."}
+            {paid ? (
+              <>
+                Thank you for choosing <span className="font-semibold text-white">{course.title}</span>, {user.firstName}. Our representative will call you for a short
+                telephonic round, and the course will be assigned to you after the call.
+              </>
+            ) : (
+              <>
+                Thank you, {user.firstName}. Your request to join <span className="font-semibold text-white">{course.title}</span> has been sent to our team. Approval
+                usually takes 1–2 working days.
+              </>
+            )}
           </p>
         </div>
       </section>
+
+      {paid && (
+        <section className="mt-6 flex flex-col gap-4 rounded-2xl bg-navy-900 p-5 text-white sm:flex-row sm:items-center sm:p-6">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent-strong shadow-lg shadow-orange-900/30"><IconPhone className="h-7 w-7" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold tracking-[0.15em] text-orange-300 uppercase">Expect our call</p>
+            <p className="mt-1 font-display text-2xl font-bold">{phone}</p>
+            <p className="mt-0.5 text-sm text-slate-300">
+              {call ? CALL_SLOTS[call.slot] : "We will call you at a convenient time"} · usually within 1–2 working days
+            </p>
+            {call?.note && <p className="mt-2 text-sm text-slate-300">Your note: “{call.note}”</p>}
+          </div>
+          <Link href={changeCall} className="btn-ghost-dark shrink-0"><IconPencil className="h-4 w-4" /> {call ? "Change number or time" : "Choose a time"}</Link>
+        </section>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.1fr]">
         <article className="min-w-0 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70">
@@ -60,7 +100,7 @@ async function RequestSent({ params }: { params: P["params"] }) {
           <div className="p-6">
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs font-semibold text-brand-ink">{program?.title}</p>
-              <Pill tone="amber">Under review</Pill>
+              <Pill tone="amber">{paid ? "Awaiting call" : "Under review"}</Pill>
             </div>
             <h2 className="mt-2 font-display text-xl leading-snug font-semibold text-navy-900">{course.title}</h2>
             <p className="mt-2 text-sm text-slate-600">{course.blurb}</p>
@@ -81,8 +121,12 @@ async function RequestSent({ params }: { params: P["params"] }) {
               <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${paid ? "bg-orange-50 text-accent-strong" : "bg-emerald-50 text-emerald-600"}`}><IconWallet className="h-5 w-5" /></span>
               {paid ? (
                 <div className="text-sm">
-                  <p className="font-semibold text-navy-900">{formatINR(priceWithGst(course.price))} one-time course fee</p>
-                  <p className="text-xs text-slate-500">{formatINR(course.price)} + {formatINR(gstOn(course.price))} GST</p>
+                  <p className="font-semibold text-navy-900">{total} one-time course fee</p>
+                  <p className="text-xs text-slate-500">
+                    {price.promo && <><span className="line-through">{formatINR(course.price)}</span>{" "}</>}
+                    {formatINR(price.fee)} + {formatINR(price.gst)} GST · payable after the call
+                  </p>
+                  {price.promo && <p className="mt-1 text-xs font-semibold text-emerald-700">Promo code {price.promo.code} applied: {price.promo.percent}% off (you save {formatINR(price.discount)})</p>}
                 </div>
               ) : (
                 <div className="text-sm">
@@ -120,7 +164,7 @@ async function RequestSent({ params }: { params: P["params"] }) {
       ) : null}
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <Link href="/my-learning/courses" className="btn-primary">Track my requests <IconArrowRight className="h-4 w-4" /></Link>
+        <Link href="/my-learning/courses" className="btn-primary">{paid ? "Track my enrollment" : "Track my requests"} <IconArrowRight className="h-4 w-4" /></Link>
         <Link href="/courses" className="btn-secondary">Browse more courses</Link>
         <Link href="/my-learning" className="btn-secondary">Go to dashboard</Link>
       </div>
