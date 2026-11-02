@@ -96,6 +96,8 @@ export type LearnerProfile = {
   cv: StoredFile;
   consentAt: string;
   completedAt: string;
+  /** Email of the admin who filled this in for the learner; absent when the learner submitted it. */
+  enteredBy?: string;
 };
 
 export type EarnedCertificate = {
@@ -107,6 +109,13 @@ export type EarnedCertificate = {
   issuedAt: string;
   /** Name printed on the certificate, frozen at issue time. */
   holderName?: string;
+  /**
+   * Set when an admin awarded the certificate directly, without the learner taking the online exam.
+   * `total` is 0 unless the admin recorded a score (e.g. from an offline assessment).
+   */
+  awardedBy?: string;
+  /** Admin-only reason, e.g. “Completed offline workshop”. Never shown to the public. */
+  awardNote?: string;
 };
 
 async function readUsers(): Promise<StoredUser[]> {
@@ -293,6 +302,26 @@ export async function finishExamAttempt(
       }
       await writeUsers(users);
       return { certificate };
+  });
+}
+
+/** An admin awards a program certificate directly. Returns the existing one if the learner already holds it. */
+export async function awardCertificate(userId: string, cert: EarnedCertificate) {
+  return withUsersLock(async (users) => {
+    const user = users.find((u) => u.id === userId);
+    if (!user) return null;
+    const existing = user.certificates.find((c) => c.programId === cert.programId);
+    if (existing) return { certificate: existing, created: false };
+    user.certificates.push(cert);
+    await writeUsers(users);
+    return { certificate: cert, created: true };
+  });
+}
+
+/** Withdraws a certificate (e.g. issued by mistake); its public verification link stops working. */
+export async function revokeCertificate(userId: string, credentialId: string) {
+  return updateUser(userId, (u) => {
+    u.certificates = u.certificates.filter((c) => c.credentialId !== credentialId);
   });
 }
 

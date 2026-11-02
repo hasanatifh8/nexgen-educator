@@ -54,7 +54,7 @@ async function Certificates() {
                   <Pill tone="green">Verified</Pill>
                 </div>
                 <dl className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 text-center">
-                  <div className="p-4"><dt className="text-xs text-slate-500">Score</dt><dd className="mt-0.5 font-display font-bold text-navy-900">{Math.round((cert.score / cert.total) * 100)}%</dd></div>
+                  <div className="p-4"><dt className="text-xs text-slate-500">Score</dt><dd className="mt-0.5 font-display font-bold text-navy-900">{cert.total ? `${Math.round((cert.score / cert.total) * 100)}%` : "Awarded"}</dd></div>
                   <div className="p-4"><dt className="text-xs text-slate-500">Issued</dt><dd className="mt-0.5 font-display font-bold text-navy-900">{formatCertDate(cert.issuedAt)}</dd></div>
                   <div className="p-4"><dt className="text-xs text-slate-500">Credential ID</dt><dd className="mt-0.5 truncate font-mono text-sm font-bold text-navy-900">{cert.credentialId}</dd></div>
                 </dl>

@@ -9,7 +9,13 @@ export const metadata: Metadata = {
   description: "NextGen Educator is a digital educational initiative within the Cliccx.com IT & AI Research ecosystem, focused on teacher-led technology and instructional AI literacy.",
 };
 
-const ADDRESS = ["10A/8 Chauraha, Tashkent Marg", "Near Patrika Marg, opposite Saket Colony", "Civil Lines, Prayagraj", "Uttar Pradesh 211001, India"];
+const PRIMARY_OFFICE = { city: "Vadodara", label: "Primary office", lines: ["126, Race Course Tower", "Near Natubhai Circle, Racecourse Road", "Vadodara, Gujarat 390005"] };
+/** Shown in one row; the registered office (Prayagraj) sits in the middle. */
+const OTHER_OFFICES = [
+  { city: "Pune", label: "Office", lines: ["601 LR Commercial, R-6", "Hinjewadi, Pune", "Maharashtra 411057"] },
+  { city: "Prayagraj", label: "Registered office", lines: ["10A/8 Chauraha, Tashkent Marg", "Near Patrika Marg, opposite Saket Colony", "Civil Lines, Prayagraj", "Uttar Pradesh 211001"] },
+  { city: "Mumbai", label: "Office", lines: ["9th Floor (Block-G), LBS Marg", "Pirojshanagar, Vikhroli (West)", "Mumbai, Maharashtra"] },
+];
 const PHONE = { label: "+91 91296 04415", href: "tel:+919129604415" };
 
 const FOCUS = [
@@ -123,18 +129,30 @@ export default function AboutPage() {
             </article>
           </section>
 
-          {/* 3. Corporate office */}
+          {/* 3. Corporate offices */}
           <footer aria-labelledby="office" className="py-6">
-            <h2 id="office" className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Corporate office &amp; registered coordinates</h2>
-            <dl className="mt-3 grid gap-4 text-xs text-slate-500 sm:grid-cols-3">
-              <div>
-                <dt className="font-medium text-slate-600">Registered address</dt>
-                <dd className="mt-1 leading-relaxed">
-                  <address className="not-italic">
-                    {ADDRESS.map((line) => <span key={line} className="block">{line}</span>)}
+            <h2 id="office" className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Corporate offices &amp; registered coordinates</h2>
+
+            <div className="mt-3 rounded-md border border-slate-200 px-4 py-3">
+              <p className="text-xs font-medium text-slate-600">{PRIMARY_OFFICE.label} · {PRIMARY_OFFICE.city}</p>
+              <address className="mt-1 text-xs leading-relaxed text-slate-500 not-italic">
+                {PRIMARY_OFFICE.lines.join(", ")}, India
+              </address>
+            </div>
+
+            <ul className="mt-3 grid gap-3 sm:grid-cols-3">
+              {OTHER_OFFICES.map((o) => (
+                <li key={o.city} className={`rounded-md border px-3 py-3 ${o.label === "Registered office" ? "border-slate-200 bg-slate-50/60" : "border-slate-100"}`}>
+                  <p className="text-xs font-medium text-slate-600">{o.city}</p>
+                  <p className="text-[11px] tracking-wide text-slate-400 uppercase">{o.label}</p>
+                  <address className="mt-1.5 text-xs leading-relaxed text-slate-500 not-italic">
+                    {o.lines.map((line) => <span key={line} className="block">{line}</span>)}
                   </address>
-                </dd>
-              </div>
+                </li>
+              ))}
+            </ul>
+
+            <dl className="mt-4 grid gap-4 border-t border-slate-100 pt-4 text-xs text-slate-500 sm:grid-cols-3">
               <div>
                 <dt className="font-medium text-slate-600">Phone</dt>
                 <dd className="mt-1">

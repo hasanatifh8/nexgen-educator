@@ -11,7 +11,8 @@ import { isAdminEmail, requireAdmin } from "@/lib/dal";
 import { findUserById } from "@/lib/users";
 import { listNotes } from "@/lib/notes";
 import PickList from "../../notes/PickList";
-import { assignUserNotesAction, reviewProfileAction, savePaymentAction, saveResumeAction } from "../../actions";
+import { assignUserNotesAction, awardCertificateAction, reviewProfileAction, revokeCertificateAction, savePaymentAction, saveResumeAction } from "../../actions";
+import ConfirmDelete from "../../ConfirmDelete";
 import { AccessDenied, Flash, adminSkeleton, one } from "../../ui";
 import { ProfileBadge } from "../badges";
 import AssignmentForm from "./AssignmentForm";
@@ -79,7 +80,7 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
       </div>
 
       <Flash
-        saved={saved === "payment" ? "payment" : saved === "resume" ? "resume upgrade" : saved === "assignments" ? "course assignments" : saved === "notes" ? "PDF notes access" : saved === "verified" ? "verification (verified)" : saved === "rejected" ? "verification (changes requested)" : undefined}
+        saved={saved === "payment" ? "payment" : saved === "resume" ? "resume upgrade" : saved === "assignments" ? "course assignments" : saved === "notes" ? "PDF notes access" : saved === "profile" ? "learner profile" : saved === "certificate" ? "certificate" : saved === "certificate-revoked" ? "certificate withdrawal" : saved === "verified" ? "verification (verified)" : saved === "rejected" ? "verification (changes requested)" : undefined}
         error={one(sp.error)}
       />
 
@@ -115,7 +116,10 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.1fr]">
         <div className="space-y-6">
           <section className="card p-6">
-            <h2 className="font-display text-lg font-semibold text-navy-900">Profile</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-lg font-semibold text-navy-900">Profile</h2>
+              {p && <Link href={`/admin/users/${user.id}/profile`} className="text-sm font-semibold text-brand-ink hover:underline">Edit profile</Link>}
+            </div>
             {p ? (
               <dl className="mt-3 divide-y divide-slate-100">
                 <Row label="Mobile">+91 {p.phone}</Row>
@@ -124,10 +128,14 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
                 <Row label="Experience">{p.experienceYears} years</Row>
                 <Row label="Role (at sign-up)">{user.role}</Row>
                 {user.institution && <Row label="School">{user.institution}</Row>}
-                <Row label="Submitted">{fmtDate(p.completedAt)}</Row>
+                <Row label="Submitted">{fmtDate(p.completedAt)}{p.enteredBy ? ` · entered by admin (${p.enteredBy})` : ""}</Row>
               </dl>
             ) : (
-              <p className="mt-3 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">This learner hasn’t completed their profile yet.</p>
+              <div className="mt-3 rounded-lg bg-slate-50 px-4 py-6 text-center">
+                <p className="text-sm text-slate-500">This learner hasn’t completed their profile yet.</p>
+                <Link href={`/admin/users/${user.id}/profile`} className="btn-primary mt-4 py-2.5 text-sm">Complete profile for learner</Link>
+                <p className="mt-2 text-xs text-slate-400">For learners who can’t upload their details or documents themselves.</p>
+              </div>
             )}
           </section>
 
@@ -183,6 +191,74 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
           </div>
         </section>
       </div>
+
+      <section id="certificates" className="card mt-6 scroll-mt-24 p-6">
+        <h2 className="font-display text-lg font-semibold text-navy-900">Certificates</h2>
+        <p className="mt-1 text-sm text-slate-500">Certificates this learner holds. You can also award one directly — for example after an offline assessment — without the course or the online exam.</p>
+        {user.certificates.length > 0 ? (
+          <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">
+            {user.certificates.map((c) => (
+              <li key={c.credentialId} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="font-semibold text-navy-900">{c.programTitle}</p>
+                  <p className="text-xs text-slate-500">
+                    <span className="font-mono">{c.credentialId}</span> · issued {fmtDate(c.issuedAt)} ·{" "}
+                    {c.awardedBy ? `awarded by ${c.awardedBy}${c.total ? ` · score ${c.score}/${c.total}` : " · no exam score"}` : `passed the exam · ${c.score}/${c.total}`}
+                  </p>
+                  {c.awardNote && <p className="mt-0.5 text-xs text-slate-500">Note: {c.awardNote}</p>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <a href={`/verify/${c.credentialId}`} target="_blank" rel="noopener noreferrer" className="rounded-md px-2.5 py-1.5 text-xs font-semibold text-brand-ink hover:bg-sky-50">View</a>
+                  <ConfirmDelete action={revokeCertificateAction} id={`${user.id}:${c.credentialId}`} name={c.programTitle} label="Withdraw" question={`Withdraw the ${c.programTitle} certificate (${c.credentialId})? Its verification link will stop working.`} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 rounded-lg bg-slate-50 px-4 py-4 text-center text-sm text-slate-500">No certificates yet.</p>
+        )}
+
+        {(() => {
+          const available = programs.filter((pr) => !user.certificates.some((c) => c.programId === pr.id));
+          if (!available.length) return null;
+          return (
+            <form action={awardCertificateAction} className="mt-5 space-y-4 rounded-xl border border-amber-200 bg-amber-50/40 p-4">
+              <input type="hidden" name="userId" value={user.id} />
+              <p className="text-sm font-semibold text-navy-900">Award a certificate directly</p>
+              <div className="grid gap-3 sm:grid-cols-[1fr_110px_110px]">
+                <label className="block text-xs font-semibold text-slate-600">
+                  Certification program
+                  <select name="programId" required defaultValue="" className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-navy-900">
+                    <option value="" disabled>Select…</option>
+                    {available.map((pr) => <option key={pr.id} value={pr.id}>{pr.title}</option>)}
+                  </select>
+                </label>
+                <label className="block text-xs font-semibold text-slate-600">
+                  Score <span className="font-normal text-slate-400">(optional)</span>
+                  <input name="score" type="number" min={0} step={1} inputMode="numeric" className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+                </label>
+                <label className="block text-xs font-semibold text-slate-600">
+                  Out of
+                  <input name="total" type="number" min={1} step={1} inputMode="numeric" className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+                </label>
+              </div>
+              <label className="block text-xs font-semibold text-slate-600">
+                Reason <span className="font-normal text-slate-400">(admins only, e.g. “Passed offline assessment on 2 Nov”)</span>
+                <input name="note" maxLength={200} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+              </label>
+              <p className="text-xs text-slate-500">Leave the score blank to issue it without a score — the certificate and verification page then say it was awarded by your organisation instead of showing exam marks.</p>
+              <label className="flex items-start gap-2 text-sm text-amber-950">
+                <input type="checkbox" name="confirm" required className="mt-0.5 h-4 w-4 accent-amber-600" />
+                I am issuing this certificate without the learner completing the course or the online exam.
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <input type="checkbox" name="notify" defaultChecked className="h-4 w-4 accent-brand" /> Email the learner their certificate
+              </label>
+              <button type="submit" className="btn bg-navy-900 py-2.5 text-sm text-white hover:bg-navy-800">Issue certificate</button>
+            </form>
+          );
+        })()}
+      </section>
 
       <section id="notes" className="card mt-6 scroll-mt-24 p-6">
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

@@ -175,7 +175,7 @@ async function Courses() {
                           />
                           <LinkedInAddButton certificate={cert} settings={settings} className="btn-secondary w-full" />
                           <Link href={`/verify/${cert.credentialId}`} className="btn-secondary w-full sm:col-span-2">Public verification page — share with employers</Link>
-                          <p className="text-xs text-slate-500 sm:col-span-2">Credential ID <span className="font-mono font-semibold text-navy-900">{cert.credentialId}</span> · {cert.score}/{cert.total}</p>
+                          <p className="text-xs text-slate-500 sm:col-span-2">Credential ID <span className="font-mono font-semibold text-navy-900">{cert.credentialId}</span>{cert.total ? ` · ${cert.score}/${cert.total}` : ""}</p>
                         </div>
                       ) : eligible && p.exam.questions.length > 0 ? (
                         <Link href={`/certifications/${p.id}/exam`} className="btn-primary w-full"><IconTimer className="h-4 w-4" /> Take certification exam</Link>

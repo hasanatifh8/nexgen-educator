@@ -11,11 +11,18 @@ function Button({ label }: { label: string }) {
   );
 }
 
-export default function ConfirmDelete({ action, id, name }: { action: (fd: FormData) => Promise<void>; id: string; name: string }) {
+export default function ConfirmDelete({ action, id, name, label = "Delete", question }: {
+  action: (fd: FormData) => Promise<void>;
+  id: string;
+  name: string;
+  label?: string;
+  /** Confirmation text; defaults to “Delete “name”? This cannot be undone.” */
+  question?: string;
+}) {
   return (
-    <form action={action} onSubmit={(e) => !confirm(`Delete “${name}”? This cannot be undone.`) && e.preventDefault()}>
+    <form action={action} onSubmit={(e) => !confirm(question ?? `Delete “${name}”? This cannot be undone.`) && e.preventDefault()}>
       <input type="hidden" name="id" value={id} />
-      <Button label="Delete" />
+      <Button label={label} />
     </form>
   );
 }

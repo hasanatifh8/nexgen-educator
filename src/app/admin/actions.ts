@@ -4,6 +4,8 @@ import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { CATEGORIES, LEVELS, todayIST, type Category, type ExamQuestion, type Level } from "@/lib/catalog";
 import { takeLaunchInterest } from "@/lib/launchInterest";
+import { submitProfile } from "@/lib/profileSubmission";
+import type { ProfileState } from "@/app/onboarding/constants";
 import { deleteCourse, setCourseDisabled, setCourseLaunch, deleteProgram, getCourse, getProgram, saveCurriculum, saveExam, saveLesson, upsertCourse, upsertProgram, type CurriculumInput } from "@/lib/catalogStore";
 import { validateBlocks } from "@/lib/contentValidation";
 import { templateById } from "@/lib/lessonTemplates";
@@ -18,9 +20,9 @@ import { MAX_NOTE_BYTES, MAX_NOTE_LABEL } from "@/lib/uploadLimits";
 import { createNote, deleteNote, getNote, setNoteAssignees, setUserNotes, updateNote } from "@/lib/notes";
 import { createPromoCode, deletePromoCode, setPromoActive } from "@/lib/promo";
 import { PROMO_CODE_RE, normalizePromoCode } from "@/lib/enrollment";
-import { PAYMENT_STATUSES, RESUME_STATUSES, findUserById, listUsers, setAssignedCourses, setPayment, setResumeService, setVerification, type PaymentStatus, type ResumeStatus } from "@/lib/users";
+import { PAYMENT_STATUSES, RESUME_STATUSES, awardCertificate, findUserById, listUsers, revokeCertificate, setAssignedCourses, setPayment, setResumeService, setVerification, type PaymentStatus, type ResumeStatus } from "@/lib/users";
 import { getCatalog } from "@/lib/catalogStore";
-import { courseApprovedEmail, courseOpenEmail, notesSharedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
+import { certificateIssuedEmail, courseApprovedEmail, courseOpenEmail, notesSharedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
 import { emailBrand, sendMail } from "@/lib/mailer";
 import { ENQUIRY_STATUSES, updateEnquiry, type EnquiryStatus } from "@/lib/enquiries";
 
@@ -539,4 +541,76 @@ export async function deletePromoAction(fd: FormData) {
   await assertAdmin();
   await deletePromoCode(str(fd, "id"));
   redirect("/admin/promo-codes?deleted=1");
+}
+
+// --- Profile completed by an admin ------------------------------------------------
+
+/** An admin completes or corrects a learner's profile, e.g. when the learner can't upload documents themselves. */
+export async function adminSaveProfileAction(_prev: ProfileState, fd: FormData): Promise<ProfileState> {
+  const admin = await assertAdmin();
+  const userId = str(fd, "userId");
+  const user = await findUserById(userId);
+  if (!user) redirect("/admin/users");
+  const wasVerified = user.verification.status === "verified";
+  const newDocuments = ["idDocument", "cv"].some((k) => { const f = fd.get(k); return f instanceof File && f.size > 0; });
+  const errors = await submitProfile(user, fd, admin.email);
+  if (errors) return errors;
+  // Saving resets review to pending. An admin's own correction of details keeps an already-verified profile verified;
+  // new documents need the admin to tick "verified" (or go through normal review).
+  if (fd.get("verifyNow") === "on" || (wasVerified && !newDocuments)) await setVerification(userId, "verified");
+  redirect(`/admin/users/${userId}?saved=profile`);
+}
+
+// --- Certificates awarded by an admin --------------------------------------------
+
+/** Issues a program certificate directly, bypassing course completion and the online exam. */
+export async function awardCertificateAction(fd: FormData) {
+  const admin = await assertAdmin();
+  const userId = str(fd, "userId");
+  const back = (q: string): never => redirect(`/admin/users/${userId}?${q}#certificates`);
+  const user = await findUserById(userId);
+  if (!user) redirect("/admin/users");
+  const program = await getProgram(str(fd, "programId"));
+  if (!program) back(`error=${encodeURIComponent("Choose the certification program.")}`);
+  if (fd.get("confirm") !== "on") back(`error=${encodeURIComponent("Tick the box to confirm you are issuing this certificate without the exam.")}`);
+
+  const scoreRaw = str(fd, "score");
+  const totalRaw = str(fd, "total");
+  let score = 0;
+  let total = 0;
+  if (scoreRaw || totalRaw) {
+    score = Number(scoreRaw);
+    total = Number(totalRaw);
+    if (!Number.isInteger(total) || total < 1 || total > 1000 || !Number.isInteger(score) || score < 0 || score > total) {
+      back(`error=${encodeURIComponent("Enter a whole-number score between 0 and the total, or leave both blank.")}`);
+    }
+  }
+
+  const r = await awardCertificate(userId, {
+    programId: program!.id,
+    programTitle: program!.title,
+    credentialId: `NGE-${new Date().getFullYear()}-${randomBytes(4).toString("hex").toUpperCase()}`,
+    holderName: `${user.firstName} ${user.lastName}`,
+    score,
+    total,
+    issuedAt: new Date().toISOString(),
+    awardedBy: admin.email,
+    ...(str(fd, "note") ? { awardNote: str(fd, "note").slice(0, 200) } : {}),
+  });
+  if (!r) redirect("/admin/users");
+  if (!r.created) back(`error=${encodeURIComponent(`${user.firstName} already holds the ${program!.title} certificate.`)}`);
+
+  const brand = await emailBrand();
+  if (fd.get("notify") === "on" && brand) {
+    await sendMail({ to: user.email, ...certificateIssuedEmail(user.firstName, brand, { title: program!.title, credentialId: r.certificate.credentialId }) });
+  }
+  back("saved=certificate");
+}
+
+/** Withdraws a certificate. `id` is "<userId>:<credentialId>" (shared delete-confirmation form). */
+export async function revokeCertificateAction(fd: FormData) {
+  await assertAdmin();
+  const [userId, credentialId] = str(fd, "id").split(":");
+  await revokeCertificate(userId, credentialId);
+  redirect(`/admin/users/${userId}?saved=certificate-revoked#certificates`);
 }

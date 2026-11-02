@@ -69,7 +69,7 @@ async function ExamContent({ params }: { params: Params }) {
             </span>
             <h2 className="mt-5 font-display text-2xl font-bold text-navy-900">You’re already certified</h2>
             <p className="mt-2 text-slate-600">
-              You passed with {cert.score}/{cert.total}. Credential ID <span className="font-mono font-semibold text-navy-900">{cert.credentialId}</span>
+              {cert.total ? `You passed with ${cert.score}/${cert.total}.` : "Awarded by our team."} Credential ID <span className="font-mono font-semibold text-navy-900">{cert.credentialId}</span>
             </p>
             <Link href="/my-learning/certificates" className="btn-primary mt-6">View & download certificate</Link>
           </div>

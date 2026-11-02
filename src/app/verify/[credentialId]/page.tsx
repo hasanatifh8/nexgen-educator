@@ -74,7 +74,11 @@ async function Result({ params }: { params: P["params"] }) {
           <dl className="mt-3 divide-y divide-slate-100">
             <Row label="Awarded to">{holderName}</Row>
             <Row label="Program">{cert.programTitle}</Row>
-            <Row label="Score">{cert.score}/{cert.total} ({Math.round((cert.score / cert.total) * 100)}%)</Row>
+            {cert.total ? (
+              <Row label="Score">{cert.score}/{cert.total} ({Math.round((cert.score / cert.total) * 100)}%)</Row>
+            ) : (
+              <Row label="Assessment">Awarded directly by {settings.organizationName}</Row>
+            )}
             <Row label="Issued on">{issuedOn}</Row>
             <Row label="Credential ID"><span className="font-mono">{cert.credentialId}</span></Row>
             <Row label="Issued by">{settings.organizationName}</Row>

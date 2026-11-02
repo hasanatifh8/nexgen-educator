@@ -124,8 +124,21 @@ function FileDrop({ id, label, hint, accept, file, current, error, onFile }: {
   );
 }
 
-export default function ProfileForm({ existing, next }: { existing: Existing; next: string }) {
-  const [state, dispatch, pending] = useActionState<ProfileState, FormData>(saveProfileAction, {});
+type Props = {
+  existing: Existing;
+  next?: string;
+  /** "admin": an administrator fills the profile in for a learner (wording changes, plus a verify-now option). */
+  mode?: "learner" | "admin";
+  action?: (prev: ProfileState, fd: FormData) => Promise<ProfileState>;
+  /** Extra fields sent with the form, e.g. the learner's id for the admin action. */
+  hidden?: Record<string, string>;
+  learnerName?: string;
+};
+
+export default function ProfileForm({ existing, next = "", mode = "learner", action = saveProfileAction, hidden = {}, learnerName = "the learner" }: Props) {
+  const admin = mode === "admin";
+  const [verifyNow, setVerifyNow] = useState(false);
+  const [state, dispatch, pending] = useActionState<ProfileState, FormData>(action, {});
   const [v, setV] = useState<Values>({
     phone: existing?.phone ?? "",
     city: existing?.city ?? "",
@@ -169,7 +182,7 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
     if (v.experienceYears === "" || !Number.isInteger(exp) || exp < 0 || exp > 50) e.experienceYears = "Enter whole years from 0 to 50.";
     e.idDocument = checkFile(idFile, ID_TYPES, !keepId, v.idType === "pan" ? "PAN card photo" : "masked Aadhaar photo");
     e.cv = checkFile(cvFile, CV_TYPES, !existing, "CV");
-    if (!v.consent) e.consent = "Please tick the consent box to continue.";
+    if (!v.consent) e.consent = admin ? "Confirm the learner has given consent." : "Please tick the consent box to continue.";
     return Object.fromEntries(Object.entries(e).filter(([, m]) => m)) as Errors;
   };
 
@@ -193,6 +206,8 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
     fd.set("experienceYears", v.experienceYears);
     fd.set("idType", v.idType);
     fd.set("consent", "on");
+    for (const [k, val] of Object.entries(hidden)) fd.set(k, val);
+    if (admin && verifyNow) fd.set("verifyNow", "on");
     if (idFile) fd.set("idDocument", idFile);
     if (cvFile) fd.set("cv", cvFile);
     startTransition(() => dispatch(fd));
@@ -210,7 +225,7 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
 
       <fieldset className="space-y-5">
         <legend className="flex items-center gap-3 font-display text-lg font-semibold text-navy-900">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-navy-900 text-xs text-white">1</span> About you
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-navy-900 text-xs text-white">1</span> {admin ? `About ${learnerName}` : "About you"}
         </legend>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field id="phone" label="Mobile number" error={errors.phone}>
@@ -279,7 +294,7 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
 
       <fieldset className="space-y-5">
         <legend className="flex items-center gap-3 font-display text-lg font-semibold text-navy-900">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-navy-900 text-xs text-white">3</span> Your CV
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-navy-900 text-xs text-white">3</span> {admin ? "CV" : "Your CV"}
         </legend>
         <FileDrop
           id="cv"
@@ -296,16 +311,32 @@ export default function ProfileForm({ existing, next }: { existing: Existing; ne
       <div data-field="consent" className={`rounded-xl p-4 ring-1 ${errors.consent ? "bg-red-50/60 ring-red-200" : "bg-slate-50 ring-slate-200"}`}>
         <label className="flex items-start gap-3 text-sm text-slate-700">
           <input type="checkbox" checked={v.consent} onChange={(e) => set("consent", e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
-          <span>
-            I consent to NextGen Educator storing my ID document and CV <span className="font-semibold">only to verify my identity and
-            eligibility</span> for courses and certification. Documents are visible only to authorised administrators.
-          </span>
+          {admin ? (
+            <span>
+              {learnerName} has agreed to NextGen Educator storing their ID document and CV <span className="font-semibold">only to verify their identity and
+              eligibility</span> for courses and certification, and has shared these documents with us for this purpose.
+            </span>
+          ) : (
+            <span>
+              I consent to NextGen Educator storing my ID document and CV <span className="font-semibold">only to verify my identity and
+              eligibility</span> for courses and certification. Documents are visible only to authorised administrators.
+            </span>
+          )}
         </label>
         {errors.consent && <p className="mt-2 pl-7 text-xs font-medium text-red-600">{errors.consent}</p>}
       </div>
 
+      {admin && (
+        <label className="flex items-start gap-3 rounded-xl bg-emerald-50/60 p-4 text-sm text-emerald-900 ring-1 ring-emerald-200">
+          <input type="checkbox" checked={verifyNow} onChange={(e) => setVerifyNow(e.target.checked)} className="mt-0.5 h-4 w-4 accent-emerald-600" />
+          <span>
+            <span className="font-semibold">I have checked the documents — mark the profile as verified.</span> Leave unticked to send it to the normal review queue.
+          </span>
+        </label>
+      )}
+
       <button type="submit" disabled={pending || !ready} className="btn-primary w-full py-3.5 text-base">
-        {!ready ? "Loading…" : pending ? "Uploading securely… please keep this page open" : existing ? "Update & resubmit profile" : "Submit profile for review"}
+        {!ready ? "Loading…" : pending ? "Uploading securely… please keep this page open" : admin ? (existing ? "Save profile changes" : "Complete profile for learner") : existing ? "Update & resubmit profile" : "Submit profile for review"}
       </button>
       <p className="flex items-center justify-center gap-1.5 text-xs text-slate-500"><IconShield className="h-4 w-4" /> Files are stored privately and never shown publicly.</p>
     </form>

@@ -205,3 +205,16 @@ export function courseOpenEmail(firstName: string, brand: Brand, c: { id: string
     footnote: "You are receiving this one-time email because you tapped “Notify me” on this course.",
   });
 }
+
+export function certificateIssuedEmail(firstName: string, brand: Brand, c: { title: string; credentialId: string }): Email {
+  const { base } = brand;
+  return render(`Your certificate: ${c.title}`, brand, {
+    greeting: `Dear ${firstName},`,
+    paragraphs: [
+      `Congratulations! Your certificate for ${c.title} has been issued.`,
+      `Credential ID: ${c.credentialId}. Anyone can confirm it is genuine on the public verification page, and you can download it or add it to your LinkedIn profile from your learner portal.`,
+    ],
+    button: { label: "View my certificate", url: `${base}/my-learning/certificates` },
+    footnote: `Verification link: ${base}/verify/${c.credentialId}`,
+  });
+}

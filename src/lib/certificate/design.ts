@@ -176,7 +176,7 @@ export function certificateLayout(d: CertificateData, s: SiteSettings) {
     { text: d.name, x: cx, y: 89, size: fitSize(d.name, 34, 18, 200, "serif"), font: "serif", style: "bolditalic", color: C.navy, align: "center" },
     { text: "for successfully completing the certification program", x: cx, y: 104, size: 11, font: "sans", style: "normal", color: C.ink, align: "center" },
     { text: d.title, x: cx, y: 115, size: fitSize(d.title, 19, 12, 220, "sans"), font: "sans", style: "bold", color: C.sky, align: "center" },
-    { text: `Score ${d.score}/${d.total} (${pct}%)   ·   Issued ${d.issuedOn}`, x: cx, y: 125, size: 10, font: "sans", style: "normal", color: C.ink, align: "center" },
+    { text: d.total ? `Score ${d.score}/${d.total} (${pct}%)   ·   Issued ${d.issuedOn}` : `Issued ${d.issuedOn}`, x: cx, y: 125, size: 10, font: "sans", style: "normal", color: C.ink, align: "center" },
     // Signatures
     { text: s.signatoryName, x: 62, y: 158, size: 17, font: "serif", style: "italic", color: C.navy, align: "center" },
     { text: s.signatoryName, x: 62, y: 168, size: 9, font: "sans", style: "bold", color: C.navy, align: "center" },
