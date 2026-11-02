@@ -7,7 +7,7 @@ import Logo from "./Logo";
 const columns = [
   { title: "Platform", links: [["Courses", "/courses"], ["How it works", "/#how-it-works"], ["Practice Tests", "/#practice-tests"], ["FAQ", "/#faq"]] },
   { title: "Solutions", links: [["Create Account", "/register"], ["For Institutions", "/#institutions"], ["Verify a Certificate", "/verify"], ["Partner Program", "#"]] },
-  { title: "Company", links: [["About Us", "#"], ["Careers", "#"], ["Blog", "#"], ["Contact", "#"]] },
+  { title: "Company", links: [["About Us", "/about"], ["Careers", "#"], ["Blog", "#"], ["Contact", "#"]] },
 ];
 
 const noopSubscribe = () => () => {};
