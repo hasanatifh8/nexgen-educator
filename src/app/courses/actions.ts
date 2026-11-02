@@ -9,7 +9,9 @@ import { getCurrentUser } from "@/lib/dal";
 import { CALL_SLOTS, normalizePromoCode, type AppliedPromo, type CallPreference, type CallSlot } from "@/lib/enrollment";
 import { learnerFee } from "@/lib/learner";
 import { checkPromoCode, recordPromoUse } from "@/lib/promo";
+import { toggleLaunchInterest } from "@/lib/launchInterest";
 import { hit } from "@/lib/rateLimit";
+import { safeNextPath } from "@/lib/sessionToken";
 import { findUserById, requestCourse } from "@/lib/users";
 
 type Learner = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
@@ -22,6 +24,8 @@ async function requestableCourse(courseId: string, from: string): Promise<{ user
   const course = await getCourse(courseId);
   if (!course || course.disabled) redirect("/courses");
   if (user.assignedCourses.includes(courseId)) redirect(`/courses/${courseId}`);
+  // Not open yet: the course page shows when it starts and offers "Notify me" instead.
+  if (course.launch) redirect(`/courses/${courseId}`);
   return { user, course };
 }
 
@@ -54,6 +58,19 @@ export async function requestAccessAction(fd: FormData) {
   const { user, course } = await requestableCourse(courseId, `/courses/${courseId}`);
   if (course.price > 0) redirect(`/checkout/${encodeURIComponent(courseId)}`);
   await submitRequest(user, course);
+}
+
+/** “Notify me” on a course that hasn’t opened yet. Tapping again removes the learner from the list. */
+export async function notifyMeAction(fd: FormData) {
+  const courseId = String(fd.get("courseId") ?? "");
+  const back = safeNextPath(fd.get("back")) ?? `/courses/${courseId}`;
+  const user = await getCurrentUser();
+  if (!user) redirect(`/register?next=${encodeURIComponent(back)}`);
+  const course = await getCourse(courseId);
+  if (!course || course.disabled || !course.launch) redirect(back);
+  const on = await toggleLaunchInterest(courseId, user.id);
+  const sep = back.includes("?") ? "&" : "?";
+  redirect(`${back.split("#")[0]}${sep}notify=${on ? "on" : "off"}${back.includes("#") ? `#${back.split("#")[1]}` : ""}`);
 }
 
 export type PromoResult = { ok: true; code: string; percent: number } | { ok: false; error: string };

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { cache } from "react";
-import { SEED_CATALOG, type Block, type Catalog, type Course, type Exam, type Module, type Program } from "./catalog";
+import { SEED_CATALOG, todayIST, type Block, type Catalog, type Course, type Exam, type Module, type Program } from "./catalog";
 import { EMPTY_CONTENT, SEED_CONTENT } from "./seedContent";
 import { INTRO_AI_COURSE, INTRO_AI_PROGRAM } from "./seed/introAiCourse";
 import { JOYFUL_COURSE, JOYFUL_PROGRAM } from "./seed/joyfulEarlyYears";
@@ -70,11 +70,18 @@ async function installPacks(raw: Catalog): Promise<Catalog> {
   });
 }
 
+/** A course whose start date has arrived is open: its launch marker is dropped as the catalog is read. */
+function openLaunched(catalog: Catalog): Catalog {
+  const today = todayIST();
+  for (const c of catalog.courses) if (c.launch?.on && c.launch.on <= today) delete c.launch;
+  return catalog;
+}
+
 async function readCatalog(): Promise<Catalog> {
   const raw = await getJson<Catalog>(CATALOG_KEY);
   if (raw) {
     const catalog = await installPacks(raw);
-    return withPricing(catalog.programs, catalog.courses);
+    return openLaunched(withPricing(catalog.programs, catalog.courses));
   }
   // The free intro course leads the catalog as the featured starting point.
   const seeded = withPricing(
@@ -157,6 +164,7 @@ export async function upsertCourse(input: CourseInput) {
     Object.assign(existing, { ...input, id: existing.id, category: program.category, modules: existing.modules });
     if (!input.instructor) delete existing.instructor;
     if (!input.enrolled) delete existing.enrolled;
+    if (!input.launch) delete existing.launch;
   } else {
     const id = slugId(input.title, new Set(catalog.courses.map((c) => c.id)));
     catalog.courses.push({ ...input, id, category: program.category, modules: [] });
@@ -171,6 +179,17 @@ export async function setCourseDisabled(id: string, disabled: boolean) {
   if (!course) return null;
   if (disabled) course.disabled = true;
   else delete course.disabled;
+  await writeCatalog(catalog);
+  return course;
+}
+
+/** Opens a course for enrollment now (`null`), or marks it “starting soon” / “starts on” a date. */
+export async function setCourseLaunch(id: string, launch: { on?: string } | null) {
+  const catalog = await readCatalog();
+  const course = catalog.courses.find((c) => c.id === id);
+  if (!course) return null;
+  if (launch) course.launch = launch;
+  else delete course.launch;
   await writeCatalog(catalog);
   return course;
 }

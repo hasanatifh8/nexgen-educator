@@ -10,6 +10,7 @@ import { connection } from "next/server";
 import { toCourseSummary, toPublicProgram } from "@/lib/catalog";
 import { canAccessCourse } from "@/lib/access";
 import { getPublicCatalog } from "@/lib/catalogStore";
+import { getLaunchInterest } from "@/lib/launchInterest";
 import { getCurrentUser } from "@/lib/dal";
 import { courseProgress } from "@/components/learn/progress";
 
@@ -27,7 +28,7 @@ const highlights = [
 /** Public catalog: anyone can browse; buttons adapt to the viewer’s profile and assignments. */
 async function Catalog() {
   await connection(); // catalog changes from the admin portal must show immediately
-  const [user, { programs, courses }] = await Promise.all([getCurrentUser(), getPublicCatalog()]);
+  const [user, { programs, courses }, interest] = await Promise.all([getCurrentUser(), getPublicCatalog(), getLaunchInterest()]);
   return (
     <>
       <CourseCatalog
@@ -38,6 +39,7 @@ async function Catalog() {
             profileComplete: user.profileComplete,
             unlocked: courses.filter((c) => canAccessCourse(user, c.id)).map((c) => c.id),
             requested: user.requests.map((r) => r.courseId),
+            notified: Object.keys(interest).filter((id) => interest[id].includes(user.id)),
             completed: Object.fromEntries(courses.map((c) => [c.id, courseProgress(c, user.progress[c.id]).count])),
           }
         }

@@ -190,3 +190,18 @@ export function notesSharedEmail(firstName: string, brand: Brand, notes: { title
     footnote: "These notes are shared with you personally. Please do not forward or publish them.",
   });
 }
+
+export function courseOpenEmail(firstName: string, brand: Brand, c: { id: string; title: string; paid: boolean }): Email {
+  const { base } = brand;
+  return render(`Now open: ${c.title}`, brand, {
+    greeting: `Dear ${firstName},`,
+    paragraphs: [
+      `Good news — ${c.title} is now open for enrollment. You asked us to let you know as soon as it launched.`,
+      c.paid
+        ? "Enroll from the course page. There is nothing to pay online: our representative will call you, and the course is assigned to you after the call."
+        : "Request the course from the course page, and our team will assign it to you, usually within 1–2 working days.",
+    ],
+    button: { label: c.paid ? "Enroll now" : "Request this course", url: `${base}/courses/${c.id}` },
+    footnote: "You are receiving this one-time email because you tapped “Notify me” on this course.",
+  });
+}

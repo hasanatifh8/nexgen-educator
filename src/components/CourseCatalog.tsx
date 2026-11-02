@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CATEGORIES, priceShort, type Category, type CourseSummary, type PublicProgram } from "@/lib/catalog";
+import { CATEGORIES, launchLabel, priceShort, type Category, type CourseSummary, type PublicProgram } from "@/lib/catalog";
 import { CATEGORY_ACCENT, LEVEL_STYLES } from "@/lib/styles";
-import { requestAccessAction } from "@/app/courses/actions";
-import { IconBadge, IconBook, IconCheck, IconClock, IconLock, IconSignal } from "./Icons";
+import { notifyMeAction, requestAccessAction } from "@/app/courses/actions";
+import { IconBadge, IconBell, IconBook, IconCalendar, IconCheck, IconClock, IconLock, IconSignal } from "./Icons";
 
 const TABS = ["All", ...CATEGORIES] as const;
 type Tab = "All" | Category;
-type Access = "all" | "free" | "premium";
+type Access = "all" | "free" | "premium" | "soon";
 
 /** Who is browsing: null for visitors. */
 export type CatalogViewer = {
@@ -17,14 +17,35 @@ export type CatalogViewer = {
   /** Course ids the viewer can open (assigned, or everything for admins). */
   unlocked: string[];
   requested: string[];
+  /** Upcoming courses the viewer asked to be notified about. */
+  notified: string[];
   /** courseId → number of completed lessons */
   completed: Record<string, number>;
 } | null;
 
 type Props = { courses: CourseSummary[]; programs: PublicProgram[]; viewer: CatalogViewer };
 
+function NotifyButton({ course, on }: { course: CourseSummary; on: boolean }) {
+  return (
+    <form action={notifyMeAction} className="mt-5">
+      <input type="hidden" name="courseId" value={course.id} />
+      <input type="hidden" name="back" value={`/courses#${course.id}`} />
+      {on ? (
+        <button type="submit" className="btn w-full border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100" title="Tap to stop notifications">
+          <IconCheck className="h-4 w-4" /> You’ll be notified
+        </button>
+      ) : (
+        <button type="submit" className="btn w-full bg-violet-600 text-white shadow-md shadow-violet-600/20 hover:bg-violet-700">
+          <IconBell className="h-4 w-4" /> Notify me
+        </button>
+      )}
+    </form>
+  );
+}
+
 function CourseAction({ course, viewer, percent, done }: { course: CourseSummary; viewer: CatalogViewer; percent: number; done: number }) {
   const href = `/courses/${course.id}`;
+  if (course.launch && !viewer?.unlocked.includes(course.id)) return <NotifyButton course={course} on={!!viewer?.notified.includes(course.id)} />;
   if (!viewer) return <Link href={href} className="btn-primary mt-5 w-full">View syllabus & enroll</Link>;
   if (viewer.unlocked.includes(course.id)) {
     return (
@@ -60,10 +81,15 @@ export default function CourseCatalog({ courses, programs, viewer }: Props) {
   const [access, setAccess] = useState<Access>("all");
 
   const listed = courses.filter((c) => programById[c.programId]);
-  const visible = listed.filter((c) => {
-    const free = c.price === 0;
-    return (active === "All" || c.category === active) && (access === "all" || (access === "free") === free);
-  });
+  const visible = listed
+    .filter((c) => {
+      const free = c.price === 0;
+      const matchesAccess = access === "all" || (access === "soon" ? !!c.launch : !c.launch && (access === "free") === free);
+      return (active === "All" || c.category === active) && matchesAccess;
+    })
+    // Courses you can join now come first; upcoming ones follow, soonest first.
+    .sort((a, b) => (a.launch ? 1 : 0) - (b.launch ? 1 : 0) || (a.launch?.on ?? "9999").localeCompare(b.launch?.on ?? "9999"));
+  const upcomingCount = listed.filter((c) => c.launch).length;
 
   return (
     <section id="courses" className="bg-slate-50 py-14 lg:py-20">
@@ -88,7 +114,7 @@ export default function CourseCatalog({ courses, programs, viewer }: Props) {
           </div>
           <div className="flex items-center gap-4">
             <div className="inline-flex rounded-lg bg-white p-1 ring-1 ring-slate-200" role="group" aria-label="Filter by access">
-              {(["all", "free", "premium"] as const).map((a) => (
+              {(["all", "free", "premium", ...(upcomingCount ? (["soon"] as const) : [])] as const).map((a) => (
                 <button
                   key={a}
                   onClick={() => setAccess(a)}
@@ -97,7 +123,7 @@ export default function CourseCatalog({ courses, programs, viewer }: Props) {
                     access === a ? "bg-sky-50 text-brand-ink" : "text-slate-500 hover:text-navy-900"
                   }`}
                 >
-                  {a === "premium" ? "Paid" : a}
+                  {a === "premium" ? "Paid" : a === "soon" ? "Starting soon" : a}
                 </button>
               ))}
             </div>
@@ -114,8 +140,17 @@ export default function CourseCatalog({ courses, programs, viewer }: Props) {
             const done = Math.min(viewer?.completed[c.id] ?? 0, c.lessonCount);
             const percent = c.lessonCount ? Math.round((done / c.lessonCount) * 100) : 0;
             return (
-              <article key={c.id} className="card card-hover animate-fade-up flex flex-col overflow-hidden">
-                <div className={`h-1.5 bg-gradient-to-r ${CATEGORY_ACCENT[c.category]}`} />
+              <article key={c.id} id={c.id} className={`card card-hover animate-fade-up flex scroll-mt-24 flex-col overflow-hidden ${c.launch ? "ring-1 ring-violet-200" : ""}`}>
+                <div className={`h-1.5 bg-gradient-to-r ${c.launch ? "from-violet-500 to-fuchsia-500" : CATEGORY_ACCENT[c.category]}`} />
+                {c.launch && (
+                  <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-violet-50 to-fuchsia-50 px-6 py-2.5">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-violet-800"><IconCalendar className="h-4 w-4" /> {launchLabel(c.launch)}</span>
+                    <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-fuchsia-400 opacity-60 motion-reduce:animate-none" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-fuchsia-500" />
+                    </span>
+                  </div>
+                )}
                 <div className="flex flex-1 flex-col p-6">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-brand-ink">{c.category}</span>

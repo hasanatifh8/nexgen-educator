@@ -2,8 +2,9 @@
 
 import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
-import { CATEGORIES, LEVELS, type Category, type ExamQuestion, type Level } from "@/lib/catalog";
-import { deleteCourse, setCourseDisabled, deleteProgram, getCourse, getProgram, saveCurriculum, saveExam, saveLesson, upsertCourse, upsertProgram, type CurriculumInput } from "@/lib/catalogStore";
+import { CATEGORIES, LEVELS, todayIST, type Category, type ExamQuestion, type Level } from "@/lib/catalog";
+import { takeLaunchInterest } from "@/lib/launchInterest";
+import { deleteCourse, setCourseDisabled, setCourseLaunch, deleteProgram, getCourse, getProgram, saveCurriculum, saveExam, saveLesson, upsertCourse, upsertProgram, type CurriculumInput } from "@/lib/catalogStore";
 import { validateBlocks } from "@/lib/contentValidation";
 import { templateById } from "@/lib/lessonTemplates";
 import { getCurrentUser } from "@/lib/dal";
@@ -19,7 +20,7 @@ import { createPromoCode, deletePromoCode, setPromoActive } from "@/lib/promo";
 import { PROMO_CODE_RE, normalizePromoCode } from "@/lib/enrollment";
 import { PAYMENT_STATUSES, RESUME_STATUSES, findUserById, listUsers, setAssignedCourses, setPayment, setResumeService, setVerification, type PaymentStatus, type ResumeStatus } from "@/lib/users";
 import { getCatalog } from "@/lib/catalogStore";
-import { courseApprovedEmail, notesSharedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
+import { courseApprovedEmail, courseOpenEmail, notesSharedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
 import { emailBrand, sendMail } from "@/lib/mailer";
 import { ENQUIRY_STATUSES, updateEnquiry, type EnquiryStatus } from "@/lib/enquiries";
 
@@ -77,6 +78,8 @@ export async function saveCourseAction(_prev: FormState, fd: FormData): Promise<
   const instructorName = str(fd, "instructorName");
   const instructorTitle = str(fd, "instructorTitle");
   const price = str(fd, "pricing") === "free" ? 0 : Number(str(fd, "price"));
+  const availability = str(fd, "availability");
+  const launchOn = str(fd, "launchOn");
 
   const e: Record<string, string> = {};
   if (title.length < 3 || title.length > 120) e.title = "Title must be 3–120 characters.";
@@ -91,16 +94,46 @@ export async function saveCourseAction(_prev: FormState, fd: FormData): Promise<
     e.price = "Enter a whole-rupee fee from ₹1 to ₹1,00,000 (before GST), or choose Free.";
   if (blurb.length < 10 || blurb.length > 300) e.blurb = "Description must be 10–300 characters.";
   if (enrolled.length > 12) e.enrolled = "Keep this short, e.g. 2.4k.";
+  if (availability === "date" && (!/^\d{4}-\d{2}-\d{2}$/.test(launchOn) || Number.isNaN(Date.parse(launchOn)))) e.launchOn = "Choose the date enrollment opens.";
+  else if (availability === "date" && launchOn <= todayIST()) e.launchOn = "Choose a date after today, or select “Open now”.";
   if (Object.keys(e).length) return { error: "Please fix the highlighted fields.", fieldErrors: e };
+  const launch = availability === "soon" ? {} : availability === "date" ? { on: launchOn } : undefined;
 
   const saved = await upsertCourse({
     id, title, programId, level, blurb, hours, price, overview, outcomes,
+    ...(launch ? { launch } : {}),
     ...(enrolled ? { enrolled } : {}),
     ...(instructorName ? { instructor: { name: instructorName, title: instructorTitle } } : {}),
   });
   if (!saved) return { error: "That course no longer exists." };
   // New courses go straight to the curriculum builder.
   redirect(id ? `/admin/courses?saved=${encodeURIComponent(saved.title)}` : `/admin/courses/${saved.id}/content?created=1`);
+}
+
+/** Course list: open an upcoming course for enrollment right away. */
+export async function openCourseNowAction(fd: FormData) {
+  await assertAdmin();
+  const course = await setCourseLaunch(str(fd, "id"), null);
+  if (!course) redirect("/admin/courses");
+  redirect(`/admin/courses?opened=${encodeURIComponent(course.title)}`);
+}
+
+/** Emails everyone who tapped “Notify me” once a course is open, then clears its waiting list. */
+export async function emailWaitingListAction(fd: FormData) {
+  await assertAdmin();
+  const course = await getCourse(str(fd, "id"));
+  if (!course || course.launch || course.disabled) redirect("/admin/courses");
+  const brand = await emailBrand();
+  if (!brand) redirect(`/admin/courses?error=${encodeURIComponent("Set the site address in Site & certificate before sending emails.")}`);
+  const ids = await takeLaunchInterest(course.id);
+  let sent = 0;
+  for (const id of ids) {
+    const u = await findUserById(id);
+    if (!u || u.assignedCourses.includes(course.id)) continue;
+    await sendMail({ to: u.email, ...courseOpenEmail(u.firstName, brand, { id: course.id, title: course.title, paid: course.price > 0 }) });
+    sent++;
+  }
+  redirect(`/admin/courses?notified=${sent}&course=${encodeURIComponent(course.title)}`);
 }
 
 export async function setCourseDisabledAction(fd: FormData) {

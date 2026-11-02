@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CATEGORIES, priceShort, type Category, type CourseOutline, type PublicProgram } from "@/lib/catalog";
+import { CATEGORIES, launchLabel, priceShort, type Category, type CourseOutline, type PublicProgram } from "@/lib/catalog";
 import { CATEGORY_ACCENT, LEVEL_STYLES } from "@/lib/styles";
 import EnquiryDialog from "../EnquiryDialog";
-import { IconArrowRight, IconBadge, IconBook, IconCheck, IconChevronDown, IconClock } from "../Icons";
+import { IconArrowRight, IconBadge, IconBook, IconCalendar, IconCheck, IconChevronDown, IconClock } from "../Icons";
 
 const TABS = ["All", ...CATEGORIES] as const;
 
@@ -41,14 +41,19 @@ export default function CourseExplorer({ courses, programs }: { courses: CourseO
           {shown.map((c) => {
             const p = byId[c.programId];
             return (
-              <article key={c.id} className="card card-hover animate-fade-up flex flex-col overflow-hidden">
-                <div className={`h-1.5 bg-gradient-to-r ${CATEGORY_ACCENT[c.category]}`} />
+              <article key={c.id} className={`card card-hover animate-fade-up flex flex-col overflow-hidden ${c.launch ? "ring-1 ring-violet-200" : ""}`}>
+                <div className={`h-1.5 bg-gradient-to-r ${c.launch ? "from-violet-500 to-fuchsia-500" : CATEGORY_ACCENT[c.category]}`} />
+                {c.launch && (
+                  <p className="flex items-center gap-1.5 bg-gradient-to-r from-violet-50 to-fuchsia-50 px-6 py-2.5 text-xs font-bold text-violet-800">
+                    <IconCalendar className="h-4 w-4" /> {launchLabel(c.launch)} · enrollment not open yet
+                  </p>
+                )}
                 <div className="flex flex-1 flex-col p-6">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-brand-ink">{c.category}</span>
-                    {p.price === 0
+                    {c.price === 0
                       ? <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">Free</span>
-                      : <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700 ring-1 ring-orange-100">{priceShort(p.price)}</span>}
+                      : <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-bold text-orange-700 ring-1 ring-orange-100">{priceShort(c.price)}</span>}
                   </div>
                   <h3 className="mt-3 font-display text-lg leading-snug font-semibold text-navy-900">
                     <Link href={`/courses/${c.id}`} className="hover:text-brand-ink">{c.title}</Link>

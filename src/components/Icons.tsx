@@ -111,3 +111,9 @@ export const IconNotes = (p: IconProps) => (
 export const IconTag = (p: IconProps) => (
   <svg {...base} {...p}><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>
 );
+export const IconCalendar = (p: IconProps) => (
+  <svg {...base} {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+);
+export const IconBell = (p: IconProps) => (
+  <svg {...base} {...p}><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8Z" /><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0" /></svg>
+);

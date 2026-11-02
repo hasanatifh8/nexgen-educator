@@ -65,6 +65,11 @@ export type Course = {
   price: number;
   /** Hidden from the public site and can't be requested; learners already assigned keep access. */
   disabled?: boolean;
+  /**
+   * Shown on the site but not open for enrollment yet: “Starting soon”, or “Starts on <on>” (YYYY-MM-DD).
+   * A dated course opens by itself on that day — the catalog drops `launch` once the date arrives.
+   */
+  launch?: { on?: string };
   /** Longer “About this course” text (supports the rich-text format). */
   overview: string;
   outcomes: string[];
@@ -102,8 +107,15 @@ export const toPublicProgram = ({ exam, ...p }: Program): PublicProgram => ({
 });
 
 export const coursesFor = <C extends { programId: string }>(courses: C[], programId: string) => courses.filter((c) => c.programId === programId);
-/** Courses currently offered (not disabled by an admin). */
-export const activeCourses = <C extends { disabled?: boolean }>(courses: C[]) => courses.filter((c) => !c.disabled);
+/** Today in India as YYYY-MM-DD. */
+export const todayIST = () => new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+/** “Starting soon” or “Starts 15 Dec 2026”. */
+export const launchLabel = (launch: { on?: string }) =>
+  launch.on ? `Starts ${new Date(`${launch.on}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : "Starting soon";
+
+/** Courses that count towards a program now: not disabled and already open (upcoming ones join once they launch). */
+export const activeCourses = <C extends { disabled?: boolean; launch?: { on?: string } }>(courses: C[]) => courses.filter((c) => !c.disabled && !c.launch);
 export const programHours = (courses: { programId: string; hours: number }[], programId: string) =>
   coursesFor(courses, programId).reduce((h, c) => h + c.hours, 0);
 

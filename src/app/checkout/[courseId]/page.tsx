@@ -25,7 +25,7 @@ async function Checkout({ params, searchParams }: { params: P["params"]; searchP
   const course = courses.find((c) => c.id === courseId);
   const program = course && programs.find((p) => p.id === course.programId);
   if (!course || !program || course.disabled) notFound();
-  if (session.isAdmin || course.price === 0 || session.assignedCourses.includes(course.id)) redirect(`/courses/${course.id}`);
+  if (session.isAdmin || course.price === 0 || course.launch || session.assignedCourses.includes(course.id)) redirect(`/courses/${course.id}`);
 
   const user = await findUserById(session.id);
   if (!user?.profile?.completedAt) redirect(`/onboarding?next=${encodeURIComponent(here)}`);

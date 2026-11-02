@@ -26,6 +26,8 @@ type Answers = { role?: string; goal?: number; level?: Level };
 function recommend(courses: CourseOutline[], programs: Record<string, PublicProgram>, a: Required<Answers>) {
   const goal = GOALS[a.goal];
   return courses
+    // Only recommend courses people can join today.
+    .filter((c) => !c.launch)
     .map((c) => {
       const reasons: string[] = [];
       let score = 0;

@@ -1,26 +1,34 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { formatINR, priceShort, priceWithGst } from "@/lib/catalog";
+import { formatINR, launchLabel, priceShort, priceWithGst } from "@/lib/catalog";
+import { getLaunchInterest } from "@/lib/launchInterest";
 import { getCatalog } from "@/lib/catalogStore";
 import { requireAdmin } from "@/lib/dal";
-import { deleteCourseAction, setCourseDisabledAction } from "../actions";
+import { deleteCourseAction, emailWaitingListAction, openCourseNowAction, setCourseDisabledAction } from "../actions";
 import ConfirmDelete from "../ConfirmDelete";
 import { AccessDenied, AdminTitle, Flash, adminSkeleton, one } from "../ui";
 
 async function Courses({ searchParams }: { searchParams: PageProps<"/admin/courses">["searchParams"] }) {
   if (!(await requireAdmin("/admin/courses"))) return <AccessDenied />;
   const sp = await searchParams;
-  const { programs, courses } = await getCatalog();
+  const [{ programs, courses }, interest] = await Promise.all([getCatalog(), getLaunchInterest()]);
   const programById = Object.fromEntries(programs.map((p) => [p.id, p]));
 
   return (
     <>
       <AdminTitle
         title="Courses"
-        subtitle="Set each course’s fee, hide a course with Disable (assigned learners keep access), or delete it for good."
+        subtitle="Set each course’s fee and availability. Mark a course “Starting soon” or give it a start date, hide it with Disable, or delete it for good."
         action={<Link href="/admin/courses/new" className="btn-primary">+ New course</Link>}
       />
-      <Flash saved={one(sp.saved)} deleted={sp.deleted === "1"} />
+      <Flash saved={one(sp.saved)} deleted={sp.deleted === "1"} error={one(sp.error)} />
+      {(one(sp.opened) || one(sp.notified)) && (
+        <p role="status" className="mt-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
+          {one(sp.opened)
+            ? `“${one(sp.opened)}” is open for enrollment now.`
+            : `Emailed ${one(sp.notified)} learner${one(sp.notified) === "1" ? "" : "s"} that “${one(sp.course)}” is open.`}
+        </p>
+      )}
       {(one(sp.disabled) || one(sp.enabled)) && (
         <p role="status" className="mt-6 rounded-lg bg-sky-50 px-4 py-3 text-sm font-medium text-sky-900 ring-1 ring-sky-100">
           {one(sp.disabled)
@@ -46,7 +54,11 @@ async function Courses({ searchParams }: { searchParams: PageProps<"/admin/cours
                     <p className="flex flex-wrap items-center gap-2 font-semibold text-navy-900">
                       {c.title}
                       {c.disabled && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-600">Disabled</span>}
+                      {c.launch && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-violet-700 ring-1 ring-violet-200">{launchLabel(c.launch)}</span>}
                     </p>
+                    {(interest[c.id]?.length ?? 0) > 0 && (
+                      <p className="mt-1 text-xs font-semibold text-violet-700">{interest[c.id].length} waiting to be notified</p>
+                    )}
                     <p className="text-xs text-slate-500">{c.category} · {c.level}</p>
                   </td>
                   <td className="px-5 py-4 text-slate-600">{p?.title ?? <span className="text-red-600">Missing program</span>}</td>
@@ -71,6 +83,18 @@ async function Courses({ searchParams }: { searchParams: PageProps<"/admin/cours
                     <div className="flex items-center justify-end gap-1">
                       <Link href={`/admin/courses/${c.id}`} className="rounded-md px-2.5 py-1.5 text-xs font-semibold text-navy-900 hover:bg-slate-100">Edit</Link>
                       <Link href={`/admin/courses/${c.id}/content`} className="rounded-md px-2.5 py-1.5 text-xs font-semibold text-brand-ink hover:bg-sky-50">Content</Link>
+                      {c.launch && (
+                        <form action={openCourseNowAction}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <button type="submit" title="Open this course for enrollment today" className="rounded-md px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-violet-700 hover:bg-violet-50">Open now</button>
+                        </form>
+                      )}
+                      {!c.launch && !c.disabled && (interest[c.id]?.length ?? 0) > 0 && (
+                        <form action={emailWaitingListAction}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <button type="submit" title="Tell everyone on the waiting list that this course is open" className="rounded-md px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-violet-700 hover:bg-violet-50">Email {interest[c.id].length} waiting</button>
+                        </form>
+                      )}
                       <form action={setCourseDisabledAction}>
                         <input type="hidden" name="id" value={c.id} />
                         <input type="hidden" name="disabled" value={c.disabled ? "0" : "1"} />

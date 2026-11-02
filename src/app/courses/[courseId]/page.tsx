@@ -7,13 +7,14 @@ import Footer from "@/components/Footer";
 import { LEVEL_STYLES } from "@/lib/styles";
 import RichText from "@/components/learn/RichText";
 import { courseProgress } from "@/components/learn/progress";
-import { IconArrowRight, IconBadge, IconBook, IconCheck, IconChevronDown, IconClock, IconLock, IconPlay, IconTimer } from "@/components/Icons";
+import { IconArrowRight, IconBadge, IconBell, IconBook, IconCalendar, IconCheck, IconChevronDown, IconClock, IconLock, IconPlay, IconTimer } from "@/components/Icons";
 import { connection } from "next/server";
 import { canAccessCourse, examEligibility } from "@/lib/access";
-import { GST_RATE, formatINR, priceShort, priceWithGst } from "@/lib/catalog";
+import { GST_RATE, formatINR, launchLabel, priceShort, priceWithGst } from "@/lib/catalog";
+import { getLaunchInterest } from "@/lib/launchInterest";
 import { getCatalog } from "@/lib/catalogStore";
 import { getCurrentUser } from "@/lib/dal";
-import { requestAccessAction } from "../actions";
+import { notifyMeAction, requestAccessAction } from "../actions";
 import EnquiryDialog from "@/components/EnquiryDialog";
 
 export const metadata: Metadata = { title: "Course — NextGen Educator" };
@@ -24,7 +25,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
   const { courseId } = await params;
   await connection();
   const user = await getCurrentUser();
-  const { completed, requested } = await searchParams;
+  const { completed, requested, notify } = await searchParams;
   const { courses, programs } = await getCatalog();
   const course = courses.find((c) => c.id === courseId);
   const program = course && programs.find((p) => p.id === course.programId);
@@ -43,6 +44,11 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
   const certified = !!user?.certificates.some((c) => c.programId === program.id);
   const exam = user ? examEligibility(user, program.id, courses) : null;
   const learnHref = prog.next ? `/courses/${course.id}/learn/${prog.next.id}` : "#";
+  // Not open for enrollment yet (learners an admin already assigned can still open it).
+  const launch = !unlocked ? course.launch : undefined;
+  const notified = !!user && !!launch && !!(await getLaunchInterest())[course.id]?.includes(user.id);
+  // eslint-disable-next-line react-hooks/purity -- rendered per request; the countdown reflects when the page is opened
+  const daysLeft = launch?.on ? Math.max(1, Math.ceil((Date.parse(`${launch.on}T00:00:00+05:30`) - Date.now()) / 86_400_000)) : undefined;
   const cta = !prog.total ? "Content coming soon" : finished ? "Review course" : prog.count ? "Continue learning" : "Start course";
 
   return (
@@ -61,6 +67,11 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
             <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-semibold">
               <span className="rounded-full bg-white/10 px-3 py-1 text-sky-200">{course.category}</span>
               <span className={`rounded-full px-3 py-1 ring-1 ${LEVEL_STYLES[course.level]}`}>{course.level}</span>
+              {course.launch && (
+                <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-3 py-1 text-white shadow-lg shadow-violet-900/30">
+                  <IconCalendar className="h-3.5 w-3.5" /> {launchLabel(course.launch)}
+                </span>
+              )}
               {course.price === 0 ? (
                 <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-emerald-300">Free</span>
               ) : (
@@ -121,7 +132,49 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                     </span>
                   </span>
                 </div>
-                {!user ? (
+                {launch ? (
+                  <>
+                    <div className="mt-5 flex items-center gap-4 rounded-2xl bg-gradient-to-br from-violet-600 via-violet-700 to-fuchsia-700 p-4 text-white shadow-lg shadow-violet-900/20">
+                      {launch.on ? (
+                        <span className="grid w-16 shrink-0 overflow-hidden rounded-xl bg-white text-center text-navy-900 shadow-md">
+                          <span className="bg-accent-strong py-0.5 text-[11px] font-bold tracking-wider text-white uppercase">
+                            {new Date(`${launch.on}T00:00:00`).toLocaleDateString("en-IN", { month: "short" })}
+                          </span>
+                          <span className="py-1 font-display text-2xl leading-none font-extrabold">{Number(launch.on.slice(8, 10))}</span>
+                        </span>
+                      ) : (
+                        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-white/15 ring-1 ring-white/30"><IconCalendar className="h-8 w-8" /></span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold tracking-[0.15em] text-violet-200 uppercase">{launch.on ? "Enrollment opens" : "Coming soon"}</p>
+                        <p className="font-display text-lg leading-tight font-bold">{launchLabel(launch)}</p>
+                        {daysLeft !== undefined && <p className="mt-0.5 text-sm text-violet-100">{daysLeft === 1 ? "Opens tomorrow" : `In ${daysLeft} days`}</p>}
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm text-slate-600">
+                      Enrollment hasn’t opened yet. Explore the full syllabus below{notified ? "" : ", and we’ll email you the moment you can join"}.
+                    </p>
+                    {notify === "on" && notified && (
+                      <p role="status" className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
+                        <IconCheck className="h-4 w-4 shrink-0" /> You’re on the list. We’ll email you when it opens.
+                      </p>
+                    )}
+                    <form action={notifyMeAction} className="mt-5">
+                      <input type="hidden" name="courseId" value={course.id} />
+                      <input type="hidden" name="back" value={here} />
+                      {notified ? (
+                        <button type="submit" className="btn w-full border border-emerald-200 bg-emerald-50 py-3.5 text-base text-emerald-800 hover:bg-emerald-100">
+                          <IconCheck className="h-5 w-5" /> You’ll be notified · <span className="font-normal underline">Undo</span>
+                        </button>
+                      ) : (
+                        <button type="submit" className="btn w-full bg-violet-600 py-3.5 text-base text-white shadow-md shadow-violet-600/25 hover:bg-violet-700">
+                          <IconBell className="h-5 w-5" /> Notify me when it opens
+                        </button>
+                      )}
+                    </form>
+                    {!user && <p className="mt-2 text-center text-xs text-slate-500">You’ll create a free account so we can let you know.</p>}
+                  </>
+                ) : !user ? (
                   <>
                     <p className="mt-4 font-display text-xl font-bold">Enroll in this course</p>
                     <p className="mt-1 text-sm text-slate-600">

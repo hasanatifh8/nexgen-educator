@@ -14,6 +14,7 @@ export default function CourseForm({ course, programs }: { course?: CourseSummar
   const [free, setFree] = useState(course ? course.price === 0 : true);
   const [price, setPrice] = useState(String(course && course.price > 0 ? course.price : DEFAULT_PREMIUM_PRICE));
   const amount = Number(price);
+  const [availability, setAvailability] = useState<"open" | "soon" | "date">(course?.launch ? (course.launch.on ? "date" : "soon") : "open");
 
   return (
     <form action={action} className="card mt-6 space-y-5 p-6 sm:p-8">
@@ -82,6 +83,39 @@ export default function CourseForm({ course, programs }: { course?: CourseSummar
               </div>
             </Field>
           </div>
+        )}
+      </fieldset>
+
+      <fieldset>
+        <legend className="text-sm font-semibold text-navy-900">Availability</legend>
+        <input type="hidden" name="availability" value={availability} />
+        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+          {([
+            ["open", "Open now", "Learners can enroll today."],
+            ["soon", "Starting soon", "Shown with a “Starting soon” badge; no date yet."],
+            ["date", "Starts on a date", "Opens for enrollment automatically on that day."],
+          ] as const).map(([val, label, hint]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setAvailability(val)}
+              aria-pressed={availability === val}
+              className={`rounded-xl border p-3 text-left transition ${availability === val ? "border-brand bg-sky-50 ring-2 ring-brand/30" : "border-slate-200 hover:border-slate-300"}`}
+            >
+              <span className="block text-sm font-semibold text-navy-900">{label}</span>
+              <span className="mt-0.5 block text-xs text-slate-500">{hint}</span>
+            </button>
+          ))}
+        </div>
+        {availability === "date" && (
+          <div className="mt-3 max-w-xs">
+            <Field id="launchOn" label="Enrollment opens on" error={fe.launchOn} hint="India time. The course page shows a countdown until then.">
+              <input id="launchOn" name="launchOn" type="date" defaultValue={course?.launch?.on} className={inputCls(!!fe.launchOn)} />
+            </Field>
+          </div>
+        )}
+        {availability !== "open" && (
+          <p className="mt-2 text-xs text-slate-500">The course stays visible on the website, but no one can enroll until it opens. Learners can tap “Notify me” and you can email them all when it launches.</p>
         )}
       </fieldset>
 
