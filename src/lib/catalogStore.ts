@@ -5,6 +5,7 @@ import { EMPTY_CONTENT, SEED_CONTENT } from "./seedContent";
 import { INTRO_AI_COURSE, INTRO_AI_PROGRAM } from "./seed/introAiCourse";
 import { JOYFUL_COURSE, JOYFUL_PROGRAM } from "./seed/joyfulEarlyYears";
 import { SCIENCE_COURSE, SCIENCE_PROGRAM } from "./seed/scienceAiEducators";
+import { ENGLISH_COURSE, ENGLISH_PROGRAM } from "./seed/englishAiPedagogy";
 import { getJson, setJson, withLock } from "./store";
 
 /** Programs and courses, stored as one document (Postgres in production, data/catalog.json locally — see ./store). */
@@ -43,6 +44,7 @@ const PACKS_KEY = "catalog-packs";
 const PACKS: { id: string; programs: Program[]; courses: Course[] }[] = [
   { id: "joyful-early-years-2026-11", programs: [JOYFUL_PROGRAM], courses: [JOYFUL_COURSE] },
   { id: "science-educators-2026-11", programs: [SCIENCE_PROGRAM], courses: [SCIENCE_COURSE] },
+  { id: "english-educators-2026-11", programs: [ENGLISH_PROGRAM], courses: [ENGLISH_COURSE] },
 ];
 
 /** Once a server instance has seen every pack installed, it stops checking. */
