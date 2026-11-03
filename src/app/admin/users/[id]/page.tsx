@@ -9,6 +9,7 @@ import { isCourseComplete } from "@/lib/access";
 import { getCatalog } from "@/lib/catalogStore";
 import { isAdminEmail, requireAdmin } from "@/lib/dal";
 import { findUserById } from "@/lib/users";
+import { WORK_STATUSES } from "@/app/register/validation";
 import { listNotes } from "@/lib/notes";
 import PickList from "../../notes/PickList";
 import { assignUserNotesAction, awardCertificateAction, reviewProfileAction, revokeCertificateAction, savePaymentAction, saveResumeAction } from "../../actions";
@@ -75,6 +76,11 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
           <div>
             <h1 className="font-display text-2xl font-bold text-navy-900">{user.firstName} {user.lastName}</h1>
             <p className="text-sm text-slate-500">{user.email} · joined {fmtDate(user.createdAt)}</p>
+            <p className="text-sm text-slate-500">
+              {user.role}
+              {user.workStatus && ` · ${WORK_STATUSES[user.workStatus].label}`}
+              {user.institution && ` · ${user.institution}`}
+            </p>
           </div>
         </div>
         <ProfileBadge user={user} />
@@ -133,7 +139,8 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
                 <Row label="Qualification">{p.qualification}</Row>
                 <Row label="Experience">{p.experienceYears} years</Row>
                 <Row label="Role (at sign-up)">{user.role}</Row>
-                {user.institution && <Row label="School">{user.institution}</Row>}
+                {user.workStatus && <Row label="Work status">{WORK_STATUSES[user.workStatus].label}</Row>}
+                {user.institution && <Row label={user.workStatus ? WORK_STATUSES[user.workStatus].institution : "School"}>{user.institution}</Row>}
                 <Row label="Submitted">{fmtDate(p.completedAt)}{p.enteredBy ? ` · entered by admin (${p.enteredBy})` : ""}</Row>
               </dl>
             ) : (

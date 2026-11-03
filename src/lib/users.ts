@@ -14,6 +14,8 @@ export type StoredUser = {
   lastName: string;
   email: string;
   role: string;
+  /** Registration answer: working, not-working, tutor or student. Absent for accounts created before it was asked. */
+  workStatus?: "working" | "not-working" | "tutor" | "student";
   institution: string;
   newsletter: boolean;
   passwordHash: string;

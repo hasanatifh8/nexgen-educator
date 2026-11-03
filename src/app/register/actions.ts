@@ -5,7 +5,7 @@ import { welcomeEmail } from "@/lib/emails";
 import { emailBrand, sendMail } from "@/lib/mailer";
 import { safeNextPath } from "@/lib/sessionToken";
 import { createUser } from "@/lib/users";
-import { readRegisterForm, validateRegistration, type RegisterState } from "./validation";
+import { readRegisterForm, validateRegistration, type RegisterState, type WorkStatus } from "./validation";
 
 export async function register(_prev: RegisterState, formData: FormData): Promise<RegisterState> {
   const fields = readRegisterForm(formData);
@@ -14,6 +14,7 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
     lastName: fields.lastName,
     email: fields.email,
     role: fields.role,
+    workStatus: fields.workStatus,
     institution: fields.institution,
     terms: fields.terms,
     newsletter: fields.newsletter,
@@ -29,6 +30,7 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
     lastName: fields.lastName,
     email: fields.email,
     role: fields.role,
+    workStatus: fields.workStatus as WorkStatus,
     institution: fields.institution,
     newsletter: fields.newsletter,
     password: fields.password,

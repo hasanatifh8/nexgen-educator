@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useState, type FormEvent, type ReactNode } from "react";
 import { IconArrowRight, IconCheck } from "@/components/Icons";
 import { register } from "./actions";
-import { PASSWORD_RULES, ROLES, readRegisterForm, validateRegistration, type FieldErrors, type RegisterState } from "./validation";
+import { PASSWORD_RULES, ROLES, WORK_STATUSES, isWorkStatus, readRegisterForm, validateRegistration, type FieldErrors, type RegisterState } from "./validation";
 
 const initialState: RegisterState = { status: "idle" };
 
@@ -35,6 +35,8 @@ export default function RegisterForm() {
   const [seenState, setSeenState] = useState(state);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [workStatus, setWorkStatus] = useState(state.values?.workStatus ?? "");
+  const ws = isWorkStatus(workStatus) ? WORK_STATUSES[workStatus] : null;
   const next = useSearchParams().get("next") ?? "";
 
   // Adopt server-side errors whenever a new action result arrives.
@@ -111,10 +113,21 @@ export default function RegisterForm() {
             {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </Field>
-        <Field id="institution" label={<>School / institution <span className="font-normal text-slate-400">(optional)</span></>} error={errors.institution}>
-          <input id="institution" name="institution" autoComplete="organization" maxLength={120} defaultValue={v.institution} className={inputClass(!!errors.institution)} {...aria("institution")} />
+        <Field id="workStatus" label="Current work status" error={errors.workStatus}>
+          <select id="workStatus" name="workStatus" value={workStatus} onChange={(e) => setWorkStatus(e.target.value)} className={inputClass(!!errors.workStatus)} {...aria("workStatus")}>
+            <option value="" disabled>Select…</option>
+            {Object.entries(WORK_STATUSES).map(([k, w]) => <option key={k} value={k}>{w.label}</option>)}
+          </select>
         </Field>
       </div>
+
+      <Field
+        id="institution"
+        label={<>{ws?.institution ?? "School / institution"} {(!ws || ws.optional) && <span className="font-normal text-slate-400">(optional)</span>}</>}
+        error={errors.institution}
+      >
+        <input id="institution" name="institution" autoComplete="organization" maxLength={120} placeholder={ws?.placeholder} defaultValue={v.institution} className={inputClass(!!errors.institution)} {...aria("institution")} />
+      </Field>
 
       <Field id="password" label="Password" error={errors.password}>
         <PasswordInput
