@@ -20,9 +20,9 @@ import { MAX_NOTE_BYTES, MAX_NOTE_LABEL } from "@/lib/uploadLimits";
 import { createNote, deleteNote, getNote, setNoteAssignees, setUserNotes, updateNote } from "@/lib/notes";
 import { createPromoCode, deletePromoCode, setPromoActive } from "@/lib/promo";
 import { PROMO_CODE_RE, normalizePromoCode } from "@/lib/enrollment";
-import { PAYMENT_STATUSES, RESUME_STATUSES, awardCertificate, findUserById, listUsers, revokeCertificate, setAssignedCourses, setPayment, setResumeService, setVerification, type PaymentStatus, type ResumeStatus } from "@/lib/users";
+import { PAYMENT_STATUSES, RESUME_STATUSES, awardCertificate, createPasswordResetToken, findUserById, listUsers, revokeCertificate, setAssignedCourses, setPayment, setResumeService, setVerification, type PaymentStatus, type ResumeStatus } from "@/lib/users";
 import { getCatalog } from "@/lib/catalogStore";
-import { certificateIssuedEmail, courseApprovedEmail, courseOpenEmail, notesSharedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
+import { certificateIssuedEmail, courseApprovedEmail, courseOpenEmail, passwordResetEmail, notesSharedEmail, paymentReceivedEmail, resumeReadyEmail } from "@/lib/emails";
 import { emailBrand, sendMail } from "@/lib/mailer";
 import { ENQUIRY_STATUSES, updateEnquiry, type EnquiryStatus } from "@/lib/enquiries";
 
@@ -613,4 +613,25 @@ export async function revokeCertificateAction(fd: FormData) {
   const [userId, credentialId] = str(fd, "id").split(":");
   await revokeCertificate(userId, credentialId);
   redirect(`/admin/users/${userId}?saved=certificate-revoked#certificates`);
+}
+
+// --- Password help ------------------------------------------------------------------
+
+export type ResetLinkState = { link?: string; emailed?: boolean; error?: string };
+
+/**
+ * Creates a fresh password-reset link for a learner, emails it, and shows it to the admin so it can also be
+ * shared another way (e.g. WhatsApp) when the email isn't arriving. Any earlier link stops working.
+ */
+export async function adminPasswordResetAction(_prev: ResetLinkState, fd: FormData): Promise<ResetLinkState> {
+  await assertAdmin();
+  const user = await findUserById(str(fd, "userId"));
+  if (!user) return { error: "This learner no longer exists." };
+  const brand = await emailBrand();
+  if (!brand) return { error: "Set the site address in Site & certificate first, so the link points to your website." };
+  const result = await createPasswordResetToken(user.email);
+  if (!result) return { error: "Could not create a reset link." };
+  const link = `${brand.base}/reset-password?token=${result.token}`;
+  await sendMail({ to: user.email, ...passwordResetEmail(user.firstName, brand, link) });
+  return { link, emailed: true };
 }

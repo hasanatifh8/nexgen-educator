@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState, type FormEvent, type ReactNode } from "react";
 import { IconArrowRight, IconCheck } from "@/components/Icons";
@@ -34,7 +35,6 @@ export default function RegisterForm() {
   const [seenState, setSeenState] = useState(state);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const next = useSearchParams().get("next") ?? "";
 
   // Adopt server-side errors whenever a new action result arrives.
@@ -117,27 +117,16 @@ export default function RegisterForm() {
       </div>
 
       <Field id="password" label="Password" error={errors.password}>
-        <div className="relative">
-          <input
-            id="password"
-            maxLength={128}
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={`${inputClass(!!errors.password)} pr-16`}
-            {...aria("password")}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((s) => !s)}
-            className="absolute top-1/2 right-1 mt-0.75 h-10 -translate-y-1/2 rounded px-3 text-xs font-semibold text-slate-500 hover:text-navy-900"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? "Hide" : "Show"}
-          </button>
-        </div>
+        <PasswordInput
+          id="password"
+          maxLength={128}
+          name="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className={inputClass(!!errors.password)}
+          {...aria("password")}
+        />
       </Field>
       <ul className="-mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
         {PASSWORD_RULES.map((r) => {
@@ -151,11 +140,10 @@ export default function RegisterForm() {
       </ul>
 
       <Field id="confirmPassword" label="Confirm password" error={errors.confirmPassword}>
-        <input
+        <PasswordInput
           id="confirmPassword"
           maxLength={128}
           name="confirmPassword"
-          type={showPassword ? "text" : "password"}
           autoComplete="new-password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}

@@ -4,6 +4,9 @@ import { getSettings } from "./settings";
 
 type Mail = { to: string; subject: string; text: string; html: string };
 
+/** “ra***@gmail.com” — enough to trace a delivery in the logs without printing full addresses. */
+export const maskEmail = (email: string) => email.replace(/^(.{0,2})[^@]*(@.*)$/, "$1***$2");
+
 /**
  * Sends via Resend when RESEND_API_KEY + EMAIL_FROM are set.
  * Otherwise, in development, prints the email to the server console.
@@ -22,7 +25,8 @@ export async function sendMail(mail: Mail) {
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({ from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html, ...(supportEmail ? { reply_to: supportEmail } : {}) }),
       });
-      if (!res.ok) console.error(`[mailer] Resend failed (${res.status}): ${await res.text()}`);
+      if (!res.ok) console.error(`[mailer] Resend failed (${res.status}) for ${maskEmail(mail.to)} “${mail.subject}”: ${await res.text()}`);
+      else console.info(`[mailer] Sent “${mail.subject}” to ${maskEmail(mail.to)} (Resend id ${((await res.json().catch(() => ({}))) as { id?: string }).id ?? "?"})`);
     } catch (e) {
       console.error("[mailer] Resend request failed:", e);
     }

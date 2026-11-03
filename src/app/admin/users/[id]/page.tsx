@@ -16,6 +16,7 @@ import ConfirmDelete from "../../ConfirmDelete";
 import { AccessDenied, Flash, adminSkeleton, one } from "../../ui";
 import { ProfileBadge } from "../badges";
 import AssignmentForm from "./AssignmentForm";
+import PasswordHelp from "./PasswordHelp";
 
 type P = PageProps<"/admin/users/[id]">;
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -112,6 +113,11 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
           </ul>
         </section>
       )}
+
+      <section id="password" className="card mt-6 scroll-mt-24 px-6 py-4">
+        <h2 className="text-sm font-semibold text-navy-900">Can’t sign in?</h2>
+        <div className="mt-1"><PasswordHelp userId={user.id} email={user.email} /></div>
+      </section>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.1fr]">
         <div className="space-y-6">

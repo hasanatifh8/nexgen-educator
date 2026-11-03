@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { login, type LoginState } from "@/app/actions/auth";
@@ -52,7 +53,7 @@ export default function LoginForm() {
             <label htmlFor="password" className="block text-sm font-semibold text-navy-900">Password</label>
             <Link href="/forgot-password" className="-my-2 py-2 text-sm font-semibold text-brand-ink hover:underline sm:text-xs">Forgot password?</Link>
           </div>
-          <input id="password" name="password" type="password" autoComplete="current-password" required maxLength={128} className={input} />
+          <PasswordInput id="password" name="password" autoComplete="current-password" required maxLength={128} className={input} />
         </div>
         <button type="submit" disabled={pending} className="btn-primary w-full py-3 text-base">
           {pending ? "Signing in…" : <>Log In <IconArrowRight className="h-4 w-4" /></>}

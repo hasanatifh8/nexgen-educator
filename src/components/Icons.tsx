@@ -117,3 +117,9 @@ export const IconCalendar = (p: IconProps) => (
 export const IconBell = (p: IconProps) => (
   <svg {...base} {...p}><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8Z" /><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0" /></svg>
 );
+export const IconEye = (p: IconProps) => (
+  <svg {...base} {...p}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
+);
+export const IconEyeOff = (p: IconProps) => (
+  <svg {...base} {...p}><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-2.9 3.9M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 5.4-1.6" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" /></svg>
+);

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { PASSWORD_RULES } from "@/app/register/validation";
 import { passwordResetEmail } from "@/lib/emails";
-import { emailBrand, sendMail } from "@/lib/mailer";
+import { emailBrand, maskEmail, sendMail } from "@/lib/mailer";
 import { clientIp, hit } from "@/lib/rateLimit";
 import { LIMITS, isEmail } from "@/lib/validation";
 import { createPasswordResetToken, resetPasswordWithToken } from "@/lib/users";
@@ -15,10 +15,12 @@ export async function requestPasswordReset(_prev: ForgotState, formData: FormDat
   if (!isEmail(email)) return { error: "Enter a valid email address, like name@example.com.", email: email.slice(0, LIMITS.email) };
   // Stops reset-email flooding of one inbox; the response stays identical so accounts can't be probed.
   if (!hit(`reset:${email.toLowerCase()}`, 3, 60 * 60_000).ok || !hit(`reset-ip:${await clientIp()}`, 10, 60 * 60_000).ok) {
+    console.info(`[password-reset] Rate limit reached for ${maskEmail(email)}; no email sent.`);
     return { sent: true, email };
   }
 
   const result = await createPasswordResetToken(email);
+  if (!result) console.info(`[password-reset] No account for ${maskEmail(email)}; no email sent.`);
   const brand = await emailBrand();
   if (result && brand) {
     const link = `${brand.base}/reset-password?token=${result.token}`;
