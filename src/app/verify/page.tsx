@@ -4,7 +4,11 @@ import SiteHeader from "@/components/SiteHeader";
 import Footer from "@/components/Footer";
 import { IconShield } from "@/components/Icons";
 
-export const metadata: Metadata = { title: "Verify a certificate — NextGen Educator", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Verify a certificate",
+  description: "Check that a NextGen Educator certificate is genuine: scan its QR code or enter the credential ID.",
+  alternates: { canonical: "/verify" },
+};
 
 async function lookup(fd: FormData) {
   "use server";

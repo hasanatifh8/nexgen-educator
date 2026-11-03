@@ -1,6 +1,8 @@
 import { IconChevronDown } from "../Icons";
+import JsonLd from "../JsonLd";
+import { faqLd } from "@/lib/structuredData";
 
-const faqs = [
+export const FAQS: [question: string, answer: string][] = [
   ["Is NextGen Educator free?", "Registration is free and many courses are completely free. Paid courses have a one-time fee plus 18% GST, shown on each course. Nothing is paid on the website — our representative calls you first and shares the payment details."],
   ["Why do you ask for Aadhaar or PAN and my CV?", "We verify every educator so our certificates are trustworthy for schools and employers. For Aadhaar we only need the masked version (last 4 digits visible). Documents are stored privately and only authorised administrators can view them."],
   ["How do I get access to a course?", "Browse the catalog, open any course to see its full syllabus, and click “Request access” (free courses) or “Enroll now” (paid courses). For a paid course, our representative calls you for a short telephonic round first. Once your profile is complete, our team assigns the course and it appears in My Learning."],
@@ -11,13 +13,15 @@ const faqs = [
 export default function Faq() {
   return (
     <section id="faq" className="py-20 lg:py-28">
+      {/* The institutions answer describes features still being built, so it stays out of structured data. */}
+      <JsonLd data={faqLd(FAQS.filter(([q]) => !q.startsWith("Can my school")))} />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <div className="text-center">
           <span className="eyebrow">FAQ</span>
           <h2 className="section-title mt-4">Questions educators ask us</h2>
         </div>
         <div className="mt-10 space-y-3">
-          {faqs.map(([q, a]) => (
+          {FAQS.map(([q, a]) => (
             <details key={q} className="group card overflow-hidden">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-semibold text-navy-900 [&::-webkit-details-marker]:hidden">
                 {q}

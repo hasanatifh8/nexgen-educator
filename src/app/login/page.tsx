@@ -6,7 +6,7 @@ import { LogoMark } from "@/components/Logo";
 import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
-  title: "Log in — NextGen Educator",
+  title: "Log in",
   description: "Log in to access your courses, practice tests, and certifications.",
 };
 

@@ -3,20 +3,16 @@ import Image from "next/image";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import Footer from "@/components/Footer";
+import { ORG, OTHER_OFFICES, PRIMARY_OFFICE, SISTER_PLATFORMS, SITE_URL } from "@/lib/organization";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbLd } from "@/lib/structuredData";
 
 export const metadata: Metadata = {
-  title: "About Us — NextGen Educator",
-  description: "NextGen Educator is a digital educational initiative within the Cliccx.com IT & AI Research ecosystem, focused on teacher-led technology and instructional AI literacy.",
+  title: "About Us",
+  description: "About NextGen Educator: an Indian online teacher-training initiative within the Cliccx.com IT & AI Research ecosystem, with offices in Vadodara, Pune, Prayagraj and Mumbai.",
+  alternates: { canonical: "/about" },
 };
 
-const PRIMARY_OFFICE = { city: "Vadodara", label: "Primary office", lines: ["126, Race Course Tower", "Near Natubhai Circle, Racecourse Road", "Vadodara, Gujarat 390005"] };
-/** Shown in one row; the registered office (Prayagraj) sits in the middle. */
-const OTHER_OFFICES = [
-  { city: "Pune", label: "Office", lines: ["601 LR Commercial, R-6", "Hinjewadi, Pune", "Maharashtra 411057"] },
-  { city: "Prayagraj", label: "Registered office", lines: ["10A/8 Chauraha, Tashkent Marg", "Near Patrika Marg, opposite Saket Colony", "Civil Lines, Prayagraj", "Uttar Pradesh 211001"] },
-  { city: "Mumbai", label: "Office", lines: ["9th Floor (Block-G), LBS Marg", "Pirojshanagar, Vikhroli (West)", "Mumbai, Maharashtra"] },
-];
-const PHONE = { label: "+91 91296 04415", href: "tel:+919129604415" };
 
 const FOCUS = [
   ["Teacher-led technological enablement", "Practical, classroom-first training that helps educators adopt digital tools on their own terms."],
@@ -25,20 +21,6 @@ const FOCUS = [
   ["Institutional empowerment", "Programmes, assessments and verifiable certification that schools can rely on."],
 ];
 
-const PORTFOLIO = [
-  {
-    name: "ScholDesk",
-    detail: "A comprehensive management system for schools, covering administrative ledgers and academic workflows.",
-    url: "https://school-management-system-mauve-eight.vercel.app/",
-    logo: { src: "/brands/scholdesk.png", width: 171, height: 120 },
-  },
-  {
-    name: "DocSlot",
-    detail: "A digital appointment and workflow management portal for healthcare professionals and clinics.",
-    url: "https://docslot-portal.vercel.app/",
-    logo: { src: "/brands/docslot.png", width: 228, height: 64 },
-  },
-];
 
 const external = { target: "_blank", rel: "noopener noreferrer" } as const;
 
@@ -48,6 +30,12 @@ export default function AboutPage() {
     <>
       <SiteHeader />
       <main className="flex-1 bg-white">
+        <JsonLd
+          data={[
+            { "@context": "https://schema.org", "@type": "AboutPage", url: `${SITE_URL}/about`, name: "About NextGen Educator", about: { "@id": `${SITE_URL}/#organization` } },
+            breadcrumbLd([{ name: "Home", path: "/" }, { name: "About Us", path: "/about" }]),
+          ]}
+        />
         <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
           <nav aria-label="Breadcrumb" className="text-xs text-slate-400">
             <Link href="/" className="hover:text-slate-600">Home</Link>
@@ -111,7 +99,7 @@ export default function AboutPage() {
             <article aria-labelledby="portfolio" className="mt-5">
               <h3 id="portfolio" className="text-xs font-medium text-slate-600">Sister platforms in the technology portfolio</h3>
               <ul className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-100">
-                {PORTFOLIO.map((p) => (
+                {SISTER_PLATFORMS.map((p) => (
                   <li key={p.name}>
                     <a href={p.url} {...external} className="group flex items-center gap-4 px-3 py-3 transition-colors hover:bg-slate-50/70">
                       <span className="grid h-10 w-20 shrink-0 place-items-center">
@@ -156,7 +144,7 @@ export default function AboutPage() {
               <div>
                 <dt className="font-medium text-slate-600">Phone</dt>
                 <dd className="mt-1">
-                  <a href={PHONE.href} className="underline decoration-slate-300 underline-offset-2 hover:text-slate-700">{PHONE.label}</a>
+                  <a href={`tel:${ORG.phone.e164}`} className="underline decoration-slate-300 underline-offset-2 hover:text-slate-700">{ORG.phone.label}</a>
                 </dd>
               </div>
               <div>

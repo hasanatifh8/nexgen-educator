@@ -13,7 +13,7 @@ import { requireLearner } from "@/lib/dal";
 import { completeLesson } from "../../actions";
 import CompleteButton from "./CompleteButton";
 
-export const metadata: Metadata = { title: "Lesson — NextGen Educator" };
+export const metadata: Metadata = { title: "Lesson", robots: { index: false, follow: false } };
 
 type P = PageProps<"/courses/[courseId]/learn/[lessonId]">;
 

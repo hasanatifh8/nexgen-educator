@@ -13,7 +13,7 @@ import { requireLearner } from "@/lib/dal";
 import { getSettings } from "@/lib/settings";
 import CertExam from "./CertExam";
 
-export const metadata: Metadata = { title: "Certification Exam — NextGen Educator" };
+export const metadata: Metadata = { title: "Certification Exam", robots: { index: false, follow: false } };
 
 type Params = PageProps<"/certifications/[programId]/exam">["params"];
 

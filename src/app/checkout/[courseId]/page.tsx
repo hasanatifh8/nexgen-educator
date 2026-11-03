@@ -11,7 +11,7 @@ import { requireUser } from "@/lib/dal";
 import { findUserById } from "@/lib/users";
 import CheckoutWizard from "./CheckoutWizard";
 
-export const metadata: Metadata = { title: "Enroll — NextGen Educator" };
+export const metadata: Metadata = { title: "Enroll", robots: { index: false, follow: false } };
 
 type P = PageProps<"/checkout/[courseId]">;
 

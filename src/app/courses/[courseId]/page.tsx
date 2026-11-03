@@ -12,14 +12,31 @@ import { connection } from "next/server";
 import { canAccessCourse, examEligibility } from "@/lib/access";
 import { GST_RATE, formatINR, launchLabel, priceShort, priceWithGst } from "@/lib/catalog";
 import { getLaunchInterest } from "@/lib/launchInterest";
-import { getCatalog } from "@/lib/catalogStore";
+import { getCatalog, getPublicCatalog } from "@/lib/catalogStore";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbLd, courseLd } from "@/lib/structuredData";
 import { getCurrentUser } from "@/lib/dal";
 import { notifyMeAction, requestAccessAction } from "../actions";
 import EnquiryDialog from "@/components/EnquiryDialog";
 
-export const metadata: Metadata = { title: "Course — NextGen Educator" };
-
 type P = PageProps<"/courses/[courseId]">;
+
+/** Each course gets its own title, description and share preview (disabled courses stay out of search). */
+export async function generateMetadata({ params }: P): Promise<Metadata> {
+  const { courseId } = await params;
+  const course = (await getPublicCatalog()).courses.find((c) => c.id === courseId);
+  if (!course) return { title: "Course", robots: { index: false } };
+  const fee = course.price === 0 ? "Free course" : `${formatINR(course.price)} + GST`;
+  const when = course.launch ? ` · ${launchLabel(course.launch)}` : "";
+  const description = `${course.blurb} ${fee} · ${course.hours} hours · online, self-paced · certificate on passing the exam${when}.`;
+  return {
+    title: course.title,
+    description,
+    alternates: { canonical: `/courses/${course.id}` },
+    openGraph: { type: "website", url: `/courses/${course.id}`, title: course.title, description },
+    twitter: { card: "summary_large_image", title: course.title, description },
+  };
+}
 
 async function CourseOverview({ params, searchParams }: { params: P["params"]; searchParams: P["searchParams"] }) {
   const { courseId } = await params;
@@ -53,6 +70,9 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
 
   return (
     <>
+      {!course.disabled && (
+        <JsonLd data={[courseLd(course, program), breadcrumbLd([{ name: "Home", path: "/" }, { name: "Courses", path: "/courses" }, { name: course.title, path: `/courses/${course.id}` }])]} />
+      )}
       {/* Hero */}
       <section className="relative overflow-hidden bg-navy-900 text-white">
         <div className="bg-grid absolute inset-0" aria-hidden="true" />

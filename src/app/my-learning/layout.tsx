@@ -7,7 +7,7 @@ import Logo from "@/components/Logo";
 import { getCurrentUser } from "@/lib/dal";
 import PortalNav, { PortalTabBar } from "./PortalNav";
 
-export const metadata: Metadata = { title: "My Learning — NextGen Educator" };
+export const metadata: Metadata = { title: "My Learning", robots: { index: false, follow: false } };
 
 /** The signed-in learner portal: an app-style shell, separate from the promotional site's header and footer. */
 export default function PortalLayout({ children }: LayoutProps<"/my-learning">) {

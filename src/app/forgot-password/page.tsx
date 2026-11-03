@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import { LogoMark } from "@/components/Logo";
 import ForgotForm from "./ForgotForm";
 
-export const metadata: Metadata = { title: "Forgot password — NextGen Educator" };
+export const metadata: Metadata = { title: "Forgot password", robots: { index: false, follow: false } };
 
 export default function ForgotPasswordPage() {
   return (

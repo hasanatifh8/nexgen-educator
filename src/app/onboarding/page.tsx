@@ -9,7 +9,7 @@ import { safeNextPath } from "@/lib/sessionToken";
 import { findUserById } from "@/lib/users";
 import ProfileForm from "./ProfileForm";
 
-export const metadata: Metadata = { title: "Complete your profile — NextGen Educator" };
+export const metadata: Metadata = { title: "Complete your profile", robots: { index: false, follow: false } };
 
 const steps = ["Create account", "Complete profile", "Admin assigns courses", "Learn & get certified"];
 /** Shown when the learner is on the way to a paid-course checkout. */

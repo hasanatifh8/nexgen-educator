@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import AdminNav from "./AdminNav";
 
-export const metadata: Metadata = { title: "Admin Portal — NextGen Educator" };
+export const metadata: Metadata = { title: "Admin Portal", robots: { index: false, follow: false } };
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (

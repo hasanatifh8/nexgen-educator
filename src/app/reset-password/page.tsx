@@ -8,7 +8,7 @@ import { LogoMark } from "@/components/Logo";
 import { findUserByResetToken } from "@/lib/users";
 import ResetForm from "./ResetForm";
 
-export const metadata: Metadata = { title: "Reset password — NextGen Educator" };
+export const metadata: Metadata = { title: "Reset password", robots: { index: false, follow: false } };
 
 async function ResetContent({ searchParams }: { searchParams: PageProps<"/reset-password">["searchParams"] }) {
   const { token } = await searchParams;

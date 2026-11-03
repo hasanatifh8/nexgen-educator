@@ -6,7 +6,7 @@ import { IconBadge, IconBook, IconCheck, IconTimer } from "@/components/Icons";
 import RegisterForm from "./RegisterForm";
 
 export const metadata: Metadata = {
-  title: "Create your account — NextGen Educator",
+  title: "Create your account",
   description: "Register for free to access courses, practice tests, and verifiable teaching certifications.",
 };
 

@@ -10,7 +10,7 @@ import { formatCertDate } from "@/lib/certificate/design";
 import { getSettings } from "@/lib/settings";
 import { findCertificate } from "@/lib/users";
 
-export const metadata: Metadata = { title: "Certificate verification — NextGen Educator", robots: { index: false } };
+export const metadata: Metadata = { title: "Certificate verification", robots: { index: false } };
 
 type P = PageProps<"/verify/[credentialId]">;
 const fmt = formatCertDate;

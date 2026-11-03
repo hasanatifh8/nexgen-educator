@@ -10,13 +10,17 @@ import { connection } from "next/server";
 import { toCourseSummary, toPublicProgram } from "@/lib/catalog";
 import { canAccessCourse } from "@/lib/access";
 import { getPublicCatalog } from "@/lib/catalogStore";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbLd, courseListLd } from "@/lib/structuredData";
 import { getLaunchInterest } from "@/lib/launchInterest";
 import { getCurrentUser } from "@/lib/dal";
 import { courseProgress } from "@/components/learn/progress";
 
 export const metadata: Metadata = {
-  title: "Courses — NextGen Educator",
-  description: "Certification-ready courses in AI tools for teachers, assessment design, and classroom management.",
+  title: "Courses",
+  description:
+    "Browse online courses for teachers in India: AI tools for teachers, assessment design, classroom management, early years and primary, and CBSE/ICSE subject teaching. Free and paid courses, each with a certificate.",
+  alternates: { canonical: "/courses" },
 };
 
 const highlights = [
@@ -31,6 +35,7 @@ async function Catalog() {
   const [user, { programs, courses }, interest] = await Promise.all([getCurrentUser(), getPublicCatalog(), getLaunchInterest()]);
   return (
     <>
+      <JsonLd data={[courseListLd(courses), breadcrumbLd([{ name: "Home", path: "/" }, { name: "Courses", path: "/courses" }])]} />
       <CourseCatalog
         courses={courses.map(toCourseSummary)}
         programs={programs.map(toPublicProgram)}
