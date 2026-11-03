@@ -15,9 +15,9 @@ export async function GET(req: Request) {
     if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
-  const header = ["Received (IST)", "Name", "Mobile", "Email", "Course", "Best time", "Message", "Status", "Admin note", "Source"];
+  const header = ["Received (IST)", "Name", "Mobile (+91)", "Email", "Course", "Best time", "Message", "Status", "Admin note", "Source"];
   const lines = rows.map((e) =>
-    [formatIST(e.createdAt), e.name, `+91 ${e.phone}`, e.email, e.courseTitle, e.callTime, e.message, e.status, e.adminNote, e.source].map(cell).join(","),
+    [formatIST(e.createdAt), e.name, e.phone, e.email, e.courseTitle, e.callTime, e.message, e.status, e.adminNote, e.source].map(cell).join(","),
   );
   const csv = "﻿" + [header.map(cell).join(","), ...lines].join("\r\n");
   const stamp = new Date().toISOString().slice(0, 10);

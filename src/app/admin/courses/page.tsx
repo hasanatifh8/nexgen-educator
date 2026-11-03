@@ -56,9 +56,13 @@ async function Courses({ searchParams }: { searchParams: PageProps<"/admin/cours
                       {c.disabled && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-600">Disabled</span>}
                       {c.launch && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-violet-700 ring-1 ring-violet-200">{launchLabel(c.launch)}</span>}
                     </p>
-                    {(interest[c.id]?.length ?? 0) > 0 && (
-                      <p className="mt-1 text-xs font-semibold text-violet-700">{interest[c.id].length} waiting to be notified</p>
-                    )}
+                    {(interest[c.id]?.length ?? 0) > 0 ? (
+                      <Link href={`/admin/courses/${c.id}/waitlist`} className="mt-1 inline-block text-xs font-semibold text-violet-700 hover:underline">
+                        {interest[c.id].length} waiting to be notified — see who →
+                      </Link>
+                    ) : c.launch ? (
+                      <Link href={`/admin/courses/${c.id}/waitlist`} className="mt-1 inline-block text-xs text-slate-400 hover:text-violet-700 hover:underline">Waiting list (0)</Link>
+                    ) : null}
                     <p className="text-xs text-slate-500">{c.category} · {c.level}</p>
                   </td>
                   <td className="px-5 py-4 text-slate-600">{p?.title ?? <span className="text-red-600">Missing program</span>}</td>

@@ -23,6 +23,60 @@ type P = PageProps<"/admin/users/[id]">;
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const fmtSize = (b: number) => (b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.round(b / 1024)} KB`);
 
+const noteInput = "w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:ring-4 focus:ring-sky-100";
+
+/** Review controls that match the current status: a verified profile can be withdrawn or sent back, never re-verified. */
+function VerificationReview({ user }: { user: NonNullable<Awaited<ReturnType<typeof findUserById>>> }) {
+  const v = user.verification;
+  const reviewed = v.reviewedAt ? `${fmtDate(v.reviewedAt)}${v.reviewedBy ? ` by ${v.reviewedBy}` : ""}` : "";
+
+  if (v.status === "verified") {
+    return (
+      <div className="mt-5 space-y-3 border-t border-slate-100 pt-5">
+        <p className="flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
+          <IconCheck className="h-4 w-4 shrink-0" /> Verified{reviewed && ` on ${reviewed}`}
+        </p>
+        <form action={reviewProfileAction}>
+          <input type="hidden" name="userId" value={user.id} />
+          <button name="decision" value="withdraw" className="btn w-full border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Withdraw verification</button>
+          <p className="mt-1.5 text-xs text-slate-500">Sends the profile back to “Awaiting review”. The learner can’t take certification exams until it is verified again.</p>
+        </form>
+        <details className="rounded-lg border border-slate-200 px-4 py-3">
+          <summary className="cursor-pointer text-sm font-semibold text-red-600">Something wrong with the documents?</summary>
+          <form action={reviewProfileAction} className="mt-3 space-y-3">
+            <input type="hidden" name="userId" value={user.id} />
+            <label htmlFor="note" className="block text-sm font-semibold text-navy-900">Note to learner</label>
+            <input id="note" name="note" required maxLength={300} placeholder="e.g. ID photo is blurry — please re-upload" className={noteInput} />
+            <button name="decision" value="rejected" className="btn w-full border border-red-200 bg-white text-red-600 hover:bg-red-50"><IconX className="h-4 w-4" /> Request changes</button>
+          </form>
+        </details>
+      </div>
+    );
+  }
+
+  return (
+    <form action={reviewProfileAction} className="mt-5 space-y-3 border-t border-slate-100 pt-5">
+      <input type="hidden" name="userId" value={user.id} />
+      {v.status === "rejected" && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+          <span className="font-semibold">Changes requested{reviewed && ` on ${reviewed}`}:</span> {v.note}
+        </p>
+      )}
+      <label htmlFor="note" className="block text-sm font-semibold text-navy-900">
+        Note to learner <span className="font-normal text-slate-400">(required when requesting changes)</span>
+      </label>
+      <input id="note" name="note" defaultValue={v.status === "rejected" ? v.note : ""} maxLength={300} placeholder="e.g. ID photo is blurry — please re-upload" className={noteInput} />
+      <div className="flex gap-3">
+        <button name="decision" value="verified" className="btn flex-1 bg-emerald-600 text-white hover:bg-emerald-700"><IconCheck className="h-4 w-4" /> Verify</button>
+        <button name="decision" value="rejected" className="btn flex-1 border border-red-200 bg-white text-red-600 hover:bg-red-50">
+          <IconX className="h-4 w-4" /> {v.status === "rejected" ? "Update note" : "Request changes"}
+        </button>
+      </div>
+      {v.status === "pending" && reviewed && <p className="text-xs text-slate-500">Verification withdrawn on {reviewed}</p>}
+    </form>
+  );
+}
+
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex justify-between gap-4 py-2.5 text-sm">
@@ -87,7 +141,7 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
       </div>
 
       <Flash
-        saved={saved === "payment" ? "payment" : saved === "resume" ? "resume upgrade" : saved === "assignments" ? "course assignments" : saved === "notes" ? "PDF notes access" : saved === "profile" ? "learner profile" : saved === "certificate" ? "certificate" : saved === "certificate-revoked" ? "certificate withdrawal" : saved === "verified" ? "verification (verified)" : saved === "rejected" ? "verification (changes requested)" : undefined}
+        saved={saved === "payment" ? "payment" : saved === "resume" ? "resume upgrade" : saved === "assignments" ? "course assignments" : saved === "notes" ? "PDF notes access" : saved === "profile" ? "learner profile" : saved === "certificate" ? "certificate" : saved === "certificate-revoked" ? "certificate withdrawal" : saved === "verified" ? "verification (verified)" : saved === "rejected" ? "verification (changes requested)" : saved === "withdraw" ? "verification withdrawal" : undefined}
         error={one(sp.error)}
       />
 
@@ -175,16 +229,7 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
                 ))}
               </div>
 
-              <form action={reviewProfileAction} className="mt-5 space-y-3 border-t border-slate-100 pt-5">
-                <input type="hidden" name="userId" value={user.id} />
-                <label htmlFor="note" className="block text-sm font-semibold text-navy-900">Note to learner <span className="font-normal text-slate-400">(required when requesting changes)</span></label>
-                <input id="note" name="note" defaultValue={user.verification.note} maxLength={300} placeholder="e.g. ID photo is blurry — please re-upload" className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:ring-4 focus:ring-sky-100" />
-                <div className="flex gap-3">
-                  <button name="decision" value="verified" className="btn flex-1 bg-emerald-600 text-white hover:bg-emerald-700"><IconCheck className="h-4 w-4" /> Verify</button>
-                  <button name="decision" value="rejected" className="btn flex-1 border border-red-200 bg-white text-red-600 hover:bg-red-50"><IconX className="h-4 w-4" /> Request changes</button>
-                </div>
-                {user.verification.reviewedAt && <p className="text-xs text-slate-500">Last reviewed {fmtDate(user.verification.reviewedAt)}</p>}
-              </form>
+              <VerificationReview user={user} />
             </section>
           )}
         </div>

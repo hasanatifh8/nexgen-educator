@@ -33,7 +33,7 @@ export type StoredUser = {
   progress: Record<string, string[]>;
   profile?: LearnerProfile;
   /** Admin review of the uploaded identity document. */
-  verification: { status: "pending" | "verified" | "rejected"; note?: string; reviewedAt?: string };
+  verification: { status: "pending" | "verified" | "rejected"; note?: string; reviewedAt?: string; reviewedBy?: string };
   /** Course ids an admin has assigned — the only courses whose material this learner can open. */
   assignedCourses: string[];
   /** Courses the learner asked an admin to assign. */
@@ -358,9 +358,10 @@ export async function saveProfile(userId: string, profile: LearnerProfile) {
   });
 }
 
-export async function setVerification(userId: string, status: "verified" | "rejected", note?: string) {
+/** Records a review decision. "pending" withdraws an earlier verification and puts the profile back in the queue. */
+export async function setVerification(userId: string, status: "verified" | "rejected" | "pending", note?: string, reviewedBy?: string) {
   return updateUser(userId, (u) => {
-    u.verification = { status, ...(note ? { note } : {}), reviewedAt: new Date().toISOString() };
+    u.verification = { status, ...(note ? { note } : {}), reviewedAt: new Date().toISOString(), ...(reviewedBy ? { reviewedBy } : {}) };
   });
 }
 

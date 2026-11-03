@@ -282,17 +282,27 @@ export async function saveAssignmentsAction(fd: FormData) {
   redirect(`/admin/users/${userId}?saved=assignments`);
 }
 
+/** Verify, request changes, or withdraw an earlier verification. A verified profile can't be verified again. */
 export async function reviewProfileAction(fd: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const userId = str(fd, "userId");
   const decision = str(fd, "decision");
   const note = str(fd, "note").slice(0, 300);
+  const back = (q: string): never => redirect(`/admin/users/${userId}?${q}`);
   const user = await findUserById(userId);
   if (!user?.profile) redirect(`/admin/users/${userId}`);
-  if (decision !== "verified" && decision !== "rejected") redirect(`/admin/users/${userId}`);
-  if (decision === "rejected" && !note) redirect(`/admin/users/${userId}?error=${encodeURIComponent("Add a note telling the learner what to fix.")}`);
-  await setVerification(userId, decision, note || undefined);
-  redirect(`/admin/users/${userId}?saved=${decision}`);
+  const current = user.verification.status;
+  if (decision === "verified") {
+    if (current === "verified") back(`error=${encodeURIComponent("This profile is already verified.")}`);
+    await setVerification(userId, "verified", undefined, admin.email);
+  } else if (decision === "rejected") {
+    if (!note) back(`error=${encodeURIComponent("Add a note telling the learner what to fix.")}`);
+    await setVerification(userId, "rejected", note, admin.email);
+  } else if (decision === "withdraw") {
+    if (current !== "verified") back(`error=${encodeURIComponent("Only a verified profile can have its verification withdrawn.")}`);
+    await setVerification(userId, "pending", note || undefined, admin.email);
+  } else back("");
+  back(`saved=${decision}`);
 }
 
 export async function savePaymentAction(fd: FormData) {
@@ -557,7 +567,7 @@ export async function adminSaveProfileAction(_prev: ProfileState, fd: FormData):
   if (errors) return errors;
   // Saving resets review to pending. An admin's own correction of details keeps an already-verified profile verified;
   // new documents need the admin to tick "verified" (or go through normal review).
-  if (fd.get("verifyNow") === "on" || (wasVerified && !newDocuments)) await setVerification(userId, "verified");
+  if (fd.get("verifyNow") === "on" || (wasVerified && !newDocuments)) await setVerification(userId, "verified", undefined, admin.email);
   redirect(`/admin/users/${userId}?saved=profile`);
 }
 
