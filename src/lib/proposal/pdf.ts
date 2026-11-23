@@ -31,6 +31,8 @@ export type ProposalDocData = {
   org: ProposalOrg;
   stats: ProposalStats;
   attemptsPerDay: number;
+  /** Online payment (Razorpay) is switched on. */
+  onlinePayments?: boolean;
 };
 export type FontKey = "regular" | "medium" | "semibold" | "bold" | "italic";
 export type ProposalAssets = {
@@ -853,7 +855,9 @@ export function buildProposalPdf(JsPDFCtor: typeof JsPDF, data: ProposalDocData,
     }
 
     const notes = [
-      "No payment is taken on the website. After you confirm the list of teachers, our representative calls you and shares the payment details.",
+      data.onlinePayments
+        ? "Teachers can pay securely online by UPI, card or netbanking, or the school can pay for all its teachers together — our representative shares the details after you confirm the list."
+        : "No payment is taken on the website. After you confirm the list of teachers, our representative calls you and shares the payment details.",
       "Every course includes all lessons, activities and AI prompts, the certification exam and the verifiable certificate.",
       `This proposal is valid until ${fmtLongDate(p.validUntil)}.`,
     ];

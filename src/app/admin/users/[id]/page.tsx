@@ -148,7 +148,7 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
       {calls.length > 0 && (
         <section className="card mt-6 border-l-4 border-l-accent-strong p-6">
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-navy-900"><IconPhone className="h-5 w-5 text-accent-strong" /> Call before assigning</h2>
-          <p className="mt-1 text-sm text-slate-500">This learner enrolled in paid courses. Call them for the telephonic round, share the payment details, then record the payment and assign the course below.</p>
+          <p className="mt-1 text-sm text-slate-500">This learner enrolled in paid courses. Online (Razorpay) payments are recorded and unlock the course automatically. For learners who chose to pay after a call: call them, share the payment details, then record the payment and assign the course below.</p>
           <ul className="mt-4 divide-y divide-slate-100">
             {calls.map((r) => {
               const phone = r.call?.phone ?? p?.phone;
@@ -382,6 +382,11 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
                       <p className="text-sm font-semibold text-navy-900">{r.course.title}</p>
                       <p className="text-xs text-slate-500">{r.program?.title}{r.assigned ? "" : " · requested"}</p>
                       <p className="text-xs text-slate-500">Fee {formatINR(r.amountDue)} incl. GST{r.promo ? ` (promo ${r.promo.code}, ${r.promo.percent}% off)` : ""} · {PAYMENT_LABEL[r.status]}{r.record?.updatedAt ? ` · updated ${fmtDate(r.record.updatedAt)}` : ""}</p>
+                      {r.record?.method === "razorpay" && (
+                        <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                          <IconCheck className="h-3.5 w-3.5" /> Paid online via Razorpay · {r.record.reference}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">

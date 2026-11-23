@@ -58,10 +58,14 @@ export type PaymentRecord = {
   status: PaymentStatus;
   /** Amount received in rupees, including GST. */
   amount?: number;
-  /** UPI / bank transaction reference. */
+  /** UPI / bank transaction reference, or the Razorpay payment id for online payments. */
   reference?: string;
   paidAt?: string;
   updatedAt: string;
+  /** How it was paid: recorded by an admin (absent) or online through Razorpay. */
+  method?: "razorpay";
+  /** Razorpay order id, for online payments. */
+  orderId?: string;
 };
 
 export const RESUME_STATUSES = ["in_progress", "delivered"] as const;
@@ -379,6 +383,22 @@ export async function setPayment(userId: string, courseId: string, record: Payme
   return updateUser(userId, (u) => {
     u.payments = { ...u.payments, [courseId]: record };
   });
+}
+
+/**
+ * Online payment confirmed: records it as paid and unlocks the course straight away (no admin step).
+ * Returns the user before and after, or null if the account no longer exists.
+ */
+export async function recordOnlinePayment(userId: string, courseId: string, record: PaymentRecord, promo?: AppliedPromo) {
+  let before: { assigned: boolean; paid: boolean } | null = null;
+  const user = await updateUser(userId, (u) => {
+    before = { assigned: u.assignedCourses.includes(courseId), paid: u.payments?.[courseId]?.status === "paid" };
+    u.payments = { ...u.payments, [courseId]: record };
+    if (!u.assignedCourses.includes(courseId)) u.assignedCourses.push(courseId);
+    u.requests = u.requests.filter((r) => r.courseId !== courseId);
+    if (promo) u.promos = { ...u.promos, [courseId]: promo };
+  });
+  return user && before ? { user, before: before as { assigned: boolean; paid: boolean } } : null;
 }
 
 export async function setResumeService(userId: string, service: ResumeService) {

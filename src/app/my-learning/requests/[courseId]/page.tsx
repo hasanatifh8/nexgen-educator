@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { razorpayEnabled } from "@/lib/razorpay";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { IconArrowRight, IconBook, IconCheck, IconClock, IconPencil, IconPhone, IconSignal, IconWallet } from "@/components/Icons";
@@ -45,7 +46,7 @@ async function RequestSent({ params }: { params: P["params"] }) {
             : `Our representative will call you on ${phone}, usually within 1–2 working days, to understand your goals and confirm the course is right for you.`,
           done: false,
         },
-        { title: "Course fee", text: `Pay the one-time fee of ${total} (including GST) using the details shared on the call. Nothing is paid on the website.`, done: false },
+        { title: "Course fee", text: razorpayEnabled() ? `Pay the one-time fee of ${total} (including GST) using the details shared on the call — or pay online now from Payments and the course unlocks instantly.` : `Pay the one-time fee of ${total} (including GST) using the details shared on the call. Nothing is paid on the website.`, done: false },
         { title: "Course assigned", text: "You receive an email, and the course appears in My courses, ready to start.", done: false },
       ]
     : [

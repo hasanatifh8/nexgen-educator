@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { razorpayEnabled } from "@/lib/razorpay";
 import { IconArrowRight, IconCheck } from "../Icons";
 
 /** Closing call to action: one clear next step. */
@@ -21,7 +22,7 @@ export default function FinalCta() {
           <Link href="/courses" className="btn-ghost-dark px-7 py-3.5 text-base">See all courses</Link>
         </div>
         <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-300">
-          {["Free registration", "No payment on the website", "Learn on your phone"].map((t) => (
+          {["Free registration", razorpayEnabled() ? "Secure UPI & card payments" : "No payment on the website", "Learn on your phone"].map((t) => (
             <li key={t} className="flex items-center gap-1.5">
               <IconCheck className="h-4 w-4 text-brand-teal" /> {t}
             </li>

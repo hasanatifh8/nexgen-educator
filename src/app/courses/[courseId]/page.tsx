@@ -18,6 +18,7 @@ import { breadcrumbLd, courseLd } from "@/lib/structuredData";
 import { getCurrentUser } from "@/lib/dal";
 import { notifyMeAction, requestAccessAction } from "../actions";
 import EnquiryDialog from "@/components/EnquiryDialog";
+import { razorpayEnabled } from "@/lib/razorpay";
 
 type P = PageProps<"/courses/[courseId]">;
 
@@ -199,7 +200,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                     <p className="mt-4 font-display text-xl font-bold">Enroll in this course</p>
                     <p className="mt-1 text-sm text-slate-600">
                       {paid
-                        ? "Create a free account and complete your profile. Then confirm your enrollment — there is nothing to pay online."
+                        ? (razorpayEnabled() ? "Create a free account and complete your profile. Then pay securely online by UPI or card, and the course unlocks instantly." : "Create a free account and complete your profile. Then confirm your enrollment — there is nothing to pay online.")
                         : "Create a free account, complete your profile and our team will assign the course to you."}
                     </p>
                     <Link href={`/register?next=${encodeURIComponent(enrollPath)}`} className="btn-primary mt-6 w-full py-3.5 text-base">Register to enroll</Link>
@@ -217,7 +218,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                     <p className="mt-1 text-sm text-slate-600">
                       {requested ? "Thanks! " : ""}
                       {paid
-                        ? "Our representative will call you for a short telephonic round. The course is assigned to you after the call."
+                        ? (razorpayEnabled() ? "Our representative will call you for a short telephonic round. Don’t want to wait? Pay online from My Learning → Payments and the course unlocks instantly." : "Our representative will call you for a short telephonic round. The course is assigned to you after the call.")
                         : "Our team will review your request. The course unlocks as soon as it’s assigned."}
                     </p>
                     <Link href={`/my-learning/requests/${course.id}`} className="btn-secondary mt-6 w-full">View my request</Link>
@@ -228,7 +229,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                     <p className="mt-1 text-sm text-slate-600">
                       Part of <span className="font-semibold text-navy-900">{program.title}</span>.{" "}
                       {paid
-                        ? "Nothing to pay online: confirm your enrollment, and our representative will call you before the course is assigned."
+                        ? (razorpayEnabled() ? "Pay securely online by UPI, card or netbanking and start learning instantly — or ask our team to call you first." : "Nothing to pay online: confirm your enrollment, and our representative will call you before the course is assigned.")
                         : "Courses are assigned by our team."}
                     </p>
                     {paid ? (

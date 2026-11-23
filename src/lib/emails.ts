@@ -1,3 +1,4 @@
+import { razorpayEnabled } from "./razorpay";
 /** Transactional email content. Every template returns the subject plus matching plain-text and HTML bodies. */
 
 const BRAND = "NextGen Educator";
@@ -158,7 +159,7 @@ export function courseRequestedEmail(
         r.call
           ? `Our representative will call you on ${r.call.phone} during your preferred time, ${r.call.slot.toLowerCase()}, for a short telephonic discussion. This is usually within 1–2 working days.`
           : "Our representative will call you for a short telephonic discussion, usually within 1–2 working days.",
-        `During the call we will confirm the course is right for you and share the payment details for the course fee of ${r.fee} (including 18% GST). No payment is taken on the website.`,
+        razorpayEnabled() ? `During the call we will confirm the course is right for you and share the payment details for the course fee of ${r.fee} (including 18% GST). Prefer not to wait? You can pay online any time from My Learning → Payments, and the course unlocks instantly.` : `During the call we will confirm the course is right for you and share the payment details for the course fee of ${r.fee} (including 18% GST). No payment is taken on the website.`,
         "The course will be assigned to you after the call, and we will email you the moment it is available in your learner portal.",
       ],
       button: { label: "View my enrollment", url: `${base}/my-learning/courses` },
@@ -198,7 +199,7 @@ export function courseOpenEmail(firstName: string, brand: Brand, c: { id: string
     paragraphs: [
       `Good news — ${c.title} is now open for enrollment. You asked us to let you know as soon as it launched.`,
       c.paid
-        ? "Enroll from the course page. There is nothing to pay online: our representative will call you, and the course is assigned to you after the call."
+        ? (razorpayEnabled() ? "Enroll from the course page: pay securely online and the course unlocks instantly, or ask our representative to call you first." : "Enroll from the course page. There is nothing to pay online: our representative will call you, and the course is assigned to you after the call.")
         : "Request the course from the course page, and our team will assign it to you, usually within 1–2 working days.",
     ],
     button: { label: c.paid ? "Enroll now" : "Request this course", url: `${base}/courses/${c.id}` },

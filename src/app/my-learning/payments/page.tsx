@@ -5,13 +5,18 @@ import { formatINR, gstOn } from "@/lib/catalog";
 import { discountedFee } from "@/lib/enrollment";
 import { PAYMENT_LABEL, fmtDate, paymentRows, type PaymentRow } from "@/lib/learner";
 import type { PaymentStatus } from "@/lib/users";
+import { razorpayEnabled } from "@/lib/razorpay";
 import { loadLearner } from "../data";
+import PayNow from "./PayNow";
 import { Empty, PageTitle, Panel, Pill, portalSkeleton, type Tone } from "../ui";
 
 const TONE: Record<PaymentStatus, Tone> = { pending: "amber", paid: "green", waived: "blue" };
 
 async function Payments() {
   const { record, catalog } = await loadLearner("/my-learning/payments");
+  // Online payment needs a completed profile (the same rule as checkout).
+  const canPayOnline = razorpayEnabled() && !!record.profile?.completedAt;
+  const payNow = (r: PaymentRow) => <PayNow courseId={r.course.id} promoCode={r.promo?.code} label={`Pay ${formatINR(r.amountDue)} now`} />;
   const rows = paymentRows(record, catalog);
   const pending = rows.filter((r) => r.status === "pending");
   const paidTotal = rows.filter((r) => r.status === "paid").reduce((n, r) => n + (r.record?.amount ?? r.amountDue), 0);
@@ -66,6 +71,7 @@ async function Payments() {
                       ) : r.status === "waived" ? <p>No payment needed</p> : <p>Awaiting payment</p>}
                     </div>
                   </div>
+                  {r.status === "pending" && canPayOnline && <div className="mt-3">{payNow(r)}</div>}
                 </li>
               ))}
             </ul>
@@ -97,6 +103,8 @@ async function Payments() {
                         </>
                       ) : r.status === "waived" ? (
                         <p>No payment is required for this program.</p>
+                      ) : canPayOnline ? (
+                        <div className="max-w-56">{payNow(r)}<p className="mt-1.5 text-slate-500">UPI, cards or netbanking · {r.assigned ? "confirms instantly" : "unlocks the course instantly"}</p></div>
                       ) : (
                         <p>Our team will share payment instructions with you.</p>
                       )}
@@ -114,7 +122,7 @@ async function Payments() {
       <div className="mt-6 flex gap-3 rounded-2xl bg-sky-50 p-5 text-sm text-sky-900 ring-1 ring-sky-100">
         <IconInfo className="mt-0.5 h-5 w-5 shrink-0" />
         <p>
-          Paid courses are a one-time fee per course, plus 18% GST. After you enroll, our representative calls you for a short telephonic round and shares the payment details (UPI or bank transfer). Once the payment is confirmed, its status updates here and the course is approved for you.
+          Paid courses are a one-time fee per course, plus 18% GST. {razorpayEnabled() ? "Pay securely online by UPI, card or netbanking and the course unlocks instantly — or, if you prefer, our representative can call you and share the payment details." : "After you enroll, our representative calls you for a short telephonic round and shares the payment details (UPI or bank transfer)."} Once a payment is confirmed, its status updates here.
         </p>
       </div>
     </>

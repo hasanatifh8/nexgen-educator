@@ -147,7 +147,7 @@ export default function CourseFinder({ courses, initial = {}, signedIn = false }
                       className="btn-ghost-dark mt-2 w-full py-3"
                     />
                     <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400">
-                      <IconShield className="h-3.5 w-3.5" /> Free registration · nothing is paid on the website
+                      <IconShield className="h-3.5 w-3.5" /> Free registration · pay only for the courses you choose
                     </p>
                   </>
                 )}

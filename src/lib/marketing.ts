@@ -48,7 +48,7 @@ export const BUILT_FOR_YOU = [
   { title: "Short lessons that fit your day", body: "Most lessons take 10–15 minutes, so you can learn in a free period or after school, at your own pace." },
   { title: "Works on your phone", body: "No app to install and no laptop needed. Open the website on any smartphone and continue where you stopped." },
   { title: "Many courses are free", body: "Registration is free and many full courses cost nothing. Paid courses are priced for a teacher’s budget, with no surprise charges." },
-  { title: "A real person helps you", body: "For paid courses our team calls you before you pay, answers your questions and helps you choose. Nothing is paid on the website." },
+  { title: "A real person helps you", body: "Not sure which course to take? Our team calls you, answers your questions and helps you choose — before you pay anything." },
   { title: "You can try again", body: `Didn’t pass the exam the first time? Revise the lessons and try again. You get up to ${EXAM_ATTEMPT_POLICY.maxAttempts} attempts a day.` },
 ] as const;
 

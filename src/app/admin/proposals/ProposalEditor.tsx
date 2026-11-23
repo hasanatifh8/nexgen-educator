@@ -17,13 +17,14 @@ type Props = {
   org: ProposalOrg;
   stats: ProposalStats;
   attemptsPerDay: number;
+  onlinePayments?: boolean;
   /** Start the download as soon as the page opens (the “Download” link on the list). */
   autoDownload?: boolean;
 };
 
 const optional = (label: string) => <>{label} <span className="font-normal text-slate-400">(optional)</span></>;
 
-export default function ProposalEditor({ initial, saved, programs, org, stats, attemptsPerDay, autoDownload }: Props) {
+export default function ProposalEditor({ initial, saved, programs, org, stats, attemptsPerDay, onlinePayments = false, autoDownload }: Props) {
   const [form, setForm] = useState<ProposalInput>(initial);
   const [current, setCurrent] = useState(saved);
   const [dirty, setDirty] = useState(false);
@@ -47,9 +48,9 @@ export default function ProposalEditor({ initial, saved, programs, org, stats, a
   const build = useCallback(
     async (values: ProposalInput, ref: string) => {
       const [{ jsPDF }, assets] = await Promise.all([import("jspdf"), loadProposalAssets()]);
-      return buildProposalPdf(jsPDF, { p: { ...values, ref }, programs, org, stats, attemptsPerDay }, assets);
+      return buildProposalPdf(jsPDF, { p: { ...values, ref }, programs, org, stats, attemptsPerDay, onlinePayments }, assets);
     },
-    [programs, org, stats, attemptsPerDay],
+    [programs, org, stats, attemptsPerDay, onlinePayments],
   );
 
   // Live preview: the real PDF, rebuilt shortly after the admin stops typing.

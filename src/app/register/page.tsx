@@ -61,7 +61,7 @@ export default function RegisterPage({ searchParams }: PageProps<"/register">) {
                   small lesson at a time.
                 </blockquote>
                 <figcaption className="mt-4 flex items-center gap-2 text-xs text-slate-400">
-                  <IconCheck className="h-4 w-4 text-brand-teal" /> Registration is free · Nothing is paid on the website
+                  <IconCheck className="h-4 w-4 text-brand-teal" /> Registration is free · Pay only for the courses you choose
                 </figcaption>
               </figure>
             </div>

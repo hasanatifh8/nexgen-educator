@@ -8,6 +8,7 @@ import Logo from "@/components/Logo";
 import { allLessons } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalogStore";
 import { requireUser } from "@/lib/dal";
+import { razorpayEnabled, razorpayTestMode } from "@/lib/razorpay";
 import { findUserById } from "@/lib/users";
 import CheckoutWizard from "./CheckoutWizard";
 
@@ -65,11 +66,12 @@ async function Checkout({ params, searchParams }: { params: P["params"]; searchP
       }}
       call={request?.call}
       promo={request ? user.promos?.[course.id] : undefined}
+      online={{ enabled: razorpayEnabled(), testMode: razorpayTestMode() }}
     />
   );
 }
 
-/** Paid-course enrollment. There is no payment gateway: the learner confirms their details and when to call them. */
+/** Paid-course enrollment: pay online with Razorpay (course unlocks instantly) or ask for a call first. */
 export default function CheckoutPage({ params, searchParams }: P) {
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-slate-100">

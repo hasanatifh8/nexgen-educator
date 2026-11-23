@@ -7,6 +7,7 @@ import { IconArrowRight, IconBadge, IconBook, IconCheck, IconClock, IconPencil, 
 import { GST_RATE, formatINR, gstOn, priceWithGst, type Category, type Level } from "@/lib/catalog";
 import { CATEGORY_ACCENT } from "@/lib/styles";
 import { CALL_SLOTS, discountedFee, type AppliedPromo, type CallPreference, type CallSlot } from "@/lib/enrollment";
+import PayWithRazorpay from "@/components/PayWithRazorpay";
 
 type Props = {
   editing: boolean;
@@ -36,6 +37,8 @@ type Props = {
   call?: CallPreference;
   /** A code already applied to this enrollment (when coming back to change the call time). */
   promo?: AppliedPromo;
+  /** Razorpay is configured: pay online and get the course instantly (the call remains an option). */
+  online: { enabled: boolean; testMode: boolean };
 };
 
 type Price = { list: number; promo: AppliedPromo | null; discount: number; fee: number; gst: number; total: number };
@@ -45,10 +48,15 @@ function priceFor(list: number, promo: AppliedPromo | null): Price {
   return { list, promo, discount: list - fee, fee, gst: gstOn(fee), total: priceWithGst(fee) };
 }
 
-const STEPS = ["Your details", "Order summary", "Schedule call", "Confirmation"] as const;
 
-export default function CheckoutWizard({ editing, learner, course, call, promo: initialPromo }: Props) {
+
+export default function CheckoutWizard({ editing, learner, course, call, promo: initialPromo, online }: Props) {
   const [step, setStep] = useState(editing ? 2 : 0);
+  // Online payment is the default when available; “Pay after a call” keeps the original flow.
+  const [callMode, setCallMode] = useState(editing || !online.enabled);
+  const [paid, setPaid] = useState(false);
+  const payOnline = online.enabled && !callMode;
+  const steps = ["Your details", "Order summary", payOnline ? "Payment" : "Schedule call", "Confirmation"];
   const [promo, setPromo] = useState<AppliedPromo | null>(initialPromo ?? null);
   const price = priceFor(course.price, promo);
   const [state, action, pending] = useActionState<CheckoutState, FormData>(confirmEnrollmentAction, {});
@@ -78,7 +86,7 @@ export default function CheckoutWizard({ editing, learner, course, call, promo: 
         <h1 className="font-display text-2xl font-bold tracking-tight text-navy-900 sm:text-3xl">{editing ? "Update your call preference" : "Enroll in this course"}</h1>
       </div>
 
-      <Stepper step={step} />
+      <Stepper step={paid ? 3 : step} steps={steps} />
 
       {/* Phones: the order summary collapses into a strip so the steps stay above the fold. */}
       <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/70 lg:hidden">
@@ -157,97 +165,158 @@ export default function CheckoutWizard({ editing, learner, course, call, promo: 
               </>
             )}
             <div className="mt-6 rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
-              <PriceLines price={price} />
+              <PriceLines price={price} dueToday={payOnline ? price.total : 0} />
             </div>
             <PromoBox promo={promo} onChange={setPromo} />
             <ul className="mt-4 space-y-1.5 text-sm text-slate-600">
               <li className="flex gap-2.5"><IconBadge className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong" /> Counts towards the {course.program} certification exam</li>
               <li className="flex gap-2.5"><IconClock className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong" /> Learn at your own pace, on your phone or computer</li>
-              <li className="flex gap-2.5"><IconWallet className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong" /> Nothing to pay now — payment details are shared on the call</li>
+              <li className="flex gap-2.5"><IconWallet className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong" /> {online.enabled ? "Pay securely online by UPI, card or netbanking — your course unlocks instantly" : "Nothing to pay now — payment details are shared on the call"}</li>
             </ul>
-            <StepNav onBack={back} onNext={next} nextLabel="Continue to schedule call" />
+            <StepNav onBack={back} onNext={next} nextLabel={payOnline ? "Continue to payment" : "Continue to schedule call"} />
           </section>
 
           {/* Step 3 */}
           <section hidden={step !== 2} className="p-5 sm:p-8">
+            {paid ? (
+              <div className="py-6 text-center">
+                <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-600"><IconCheck className="h-8 w-8" /></span>
+                <h2 ref={step === 2 ? headingRef : undefined} tabIndex={-1} className="mt-5 font-display text-2xl font-bold text-navy-900 outline-none">Payment successful — your course is unlocked!</h2>
+                <p className="mx-auto mt-2 max-w-md text-slate-600">
+                  You paid {formatINR(price.total)} for <span className="font-semibold text-navy-900">{course.title}</span>. A receipt is on its way to {learner.email}.
+                </p>
+                <div className="mx-auto mt-8 grid max-w-md gap-3 sm:grid-cols-2">
+                  <Link href={`/courses/${course.id}`} className="btn-primary py-3">Start learning <IconArrowRight className="h-4 w-4" /></Link>
+                  <Link href="/my-learning/payments" className="btn-secondary py-3">View receipt</Link>
+                </div>
+              </div>
+            ) : payOnline ? (
+              <>
+                <StepHeading ref={step === 2 ? headingRef : undefined} n={3} title="Pay securely and start learning" text="Pay by UPI, debit or credit card, or netbanking. Your course unlocks the moment your payment is confirmed." />
+                {online.testMode && (
+                  <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+                    <span className="font-semibold">Test mode:</span> no real money is charged. Use Razorpay’s test UPI ID or test cards.
+                  </p>
+                )}
+                <div className="mt-6 rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-100">
+                  <PriceLines price={price} dueToday={price.total} />
+                </div>
+                <ul className="mt-5 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
+                  {["UPI (GPay, PhonePe, Paytm)", "Debit & credit cards", "Netbanking"].map((m) => (
+                    <li key={m} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 ring-1 ring-slate-200"><IconCheck className="h-4 w-4 shrink-0 text-emerald-600" /> {m}</li>
+                  ))}
+                </ul>
+                <div className="mt-6">
+                  <PayWithRazorpay
+                    courseId={course.id}
+                    promoCode={promo?.code ?? ""}
+                    label={`Pay ${formatINR(price.total)} securely`}
+                    onPaid={() => { setPaid(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    onPromoError={() => setPromo(null)}
+                  />
+                  <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+                    <IconShield className="h-3.5 w-3.5" /> Payments are processed by Razorpay. We never see or store your card or UPI details.
+                  </p>
+                </div>
+                <div className="mt-8 flex flex-col items-start gap-3 rounded-2xl border border-dashed border-slate-300 p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-navy-900">Prefer to talk to us first?</p>
+                    <p className="text-sm text-slate-600">Our representative calls you, answers your questions and shares the payment details.</p>
+                  </div>
+                  <button type="button" onClick={() => setCallMode(true)} className="btn-secondary shrink-0"><IconPhone className="h-4 w-4" /> Pay after a call</button>
+                </div>
+                <div className="mt-8 border-t border-slate-100 pt-6">
+                  <button type="button" onClick={back} className="btn-secondary">Back</button>
+                </div>
+              </>
+            ) : (
+              <>
             <StepHeading ref={step === 2 ? headingRef : undefined} n={3} title="Schedule a call with our team" text="There is no online payment. A representative will call you for a short telephonic round, and the course is assigned to you after the call." />
-
-            <div className="mt-6">
-              <label htmlFor="phone" className="block text-sm font-semibold text-navy-900">Number we should call</label>
-              <div className={`mt-1.5 flex overflow-hidden rounded-xl border bg-white focus-within:ring-4 ${errors.phone ? "border-red-400 focus-within:ring-red-100" : "border-slate-300 focus-within:border-brand focus-within:ring-sky-100"}`}>
-                <span className="flex items-center gap-1.5 border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600"><IconPhone className="h-4 w-4" /> +91</span>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  required
-                  maxLength={10}
-                  pattern="[6-9][0-9]{9}"
-                  defaultValue={v.phone}
-                  aria-invalid={!!errors.phone}
-                  aria-describedby={errors.phone ? "phone-error" : undefined}
-                  className="min-w-0 flex-1 px-3.5 py-3 text-sm outline-none"
+  
+              <div className="mt-6">
+                <label htmlFor="phone" className="block text-sm font-semibold text-navy-900">Number we should call</label>
+                <div className={`mt-1.5 flex overflow-hidden rounded-xl border bg-white focus-within:ring-4 ${errors.phone ? "border-red-400 focus-within:ring-red-100" : "border-slate-300 focus-within:border-brand focus-within:ring-sky-100"}`}>
+                  <span className="flex items-center gap-1.5 border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600"><IconPhone className="h-4 w-4" /> +91</span>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    required
+                    maxLength={10}
+                    pattern="[6-9][0-9]{9}"
+                    defaultValue={v.phone}
+                    aria-invalid={!!errors.phone}
+                    aria-describedby={errors.phone ? "phone-error" : undefined}
+                    className="min-w-0 flex-1 px-3.5 py-3 text-sm outline-none"
+                  />
+                </div>
+                {errors.phone && <p id="phone-error" className="mt-1.5 text-sm text-red-600">{errors.phone}</p>}
+              </div>
+  
+              <fieldset className="mt-6">
+                <legend className="text-sm font-semibold text-navy-900">Best time to call you</legend>
+                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {(Object.entries(CALL_SLOTS) as [CallSlot, string][]).map(([value, label]) => {
+                    const [name, hours] = label.split(" (");
+                    return (
+                      <label key={value} className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 transition has-[:checked]:border-brand has-[:checked]:bg-sky-50 has-[:checked]:ring-2 has-[:checked]:ring-brand/30 hover:border-slate-300">
+                        <input type="radio" name="slot" value={value} required defaultChecked={v.slot === value} className="h-4 w-4 accent-brand" />
+                        <span>
+                          <span className="block text-sm font-semibold text-navy-900">{name}</span>
+                          <span className="block text-xs text-slate-500">{hours.replace(")", "")}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {errors.slot && <p className="mt-1.5 text-sm text-red-600">{errors.slot}</p>}
+              </fieldset>
+  
+              <div className="mt-6">
+                <label htmlFor="note" className="block text-sm font-semibold text-navy-900">Anything we should know? <span className="font-normal text-slate-400">(optional)</span></label>
+                <textarea
+                  id="note"
+                  name="note"
+                  rows={3}
+                  maxLength={300}
+                  defaultValue={v.note}
+                  placeholder="e.g. Please call after 5 pm on weekdays, or I prefer Hindi."
+                  className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-sm outline-none focus:ring-4 ${errors.note ? "border-red-400 focus:ring-red-100" : "border-slate-300 focus:border-brand focus:ring-sky-100"}`}
                 />
+                {errors.note && <p className="mt-1.5 text-sm text-red-600">{errors.note}</p>}
               </div>
-              {errors.phone && <p id="phone-error" className="mt-1.5 text-sm text-red-600">{errors.phone}</p>}
-            </div>
-
-            <fieldset className="mt-6">
-              <legend className="text-sm font-semibold text-navy-900">Best time to call you</legend>
-              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {(Object.entries(CALL_SLOTS) as [CallSlot, string][]).map(([value, label]) => {
-                  const [name, hours] = label.split(" (");
-                  return (
-                    <label key={value} className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 transition has-[:checked]:border-brand has-[:checked]:bg-sky-50 has-[:checked]:ring-2 has-[:checked]:ring-brand/30 hover:border-slate-300">
-                      <input type="radio" name="slot" value={value} required defaultChecked={v.slot === value} className="h-4 w-4 accent-brand" />
-                      <span>
-                        <span className="block text-sm font-semibold text-navy-900">{name}</span>
-                        <span className="block text-xs text-slate-500">{hours.replace(")", "")}</span>
-                      </span>
-                    </label>
-                  );
-                })}
+  
+              <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-950 ring-1 ring-amber-200">
+                <input type="checkbox" name="agree" required defaultChecked={v.agree} className="mt-0.5 h-4 w-4 shrink-0 accent-brand" />
+                <span>
+                  I understand that no payment is taken on the website. A NextGen Educator representative will call me, and the course will be assigned to me after the call and payment of the course fee of {formatINR(price.total)}{promo ? ` (after the ${promo.code} discount)` : ""}.
+                </span>
+              </label>
+              {errors.agree && <p className="mt-1.5 text-sm text-red-600">{errors.agree}</p>}
+  
+              {errors.promo && (
+                <div role="alert" className="mt-6 flex flex-col gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200 sm:flex-row sm:items-center sm:justify-between">
+                  <p>{errors.promo}</p>
+                  <button type="button" onClick={() => setPromo(null)} className="shrink-0 font-semibold underline">Remove code</button>
+                </div>
+              )}
+  
+              <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-between">
+                <button type="button" onClick={back} className="btn-secondary">Back</button>
+                <button type="submit" disabled={pending} className="btn-primary px-6 py-3.5 text-base disabled:opacity-60">
+                  {pending ? "Submitting…" : editing ? "Save call preference" : "Confirm enrollment request"} {!pending && <IconArrowRight className="h-4 w-4" />}
+                </button>
               </div>
-              {errors.slot && <p className="mt-1.5 text-sm text-red-600">{errors.slot}</p>}
-            </fieldset>
-
-            <div className="mt-6">
-              <label htmlFor="note" className="block text-sm font-semibold text-navy-900">Anything we should know? <span className="font-normal text-slate-400">(optional)</span></label>
-              <textarea
-                id="note"
-                name="note"
-                rows={3}
-                maxLength={300}
-                defaultValue={v.note}
-                placeholder="e.g. Please call after 5 pm on weekdays, or I prefer Hindi."
-                className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-sm outline-none focus:ring-4 ${errors.note ? "border-red-400 focus:ring-red-100" : "border-slate-300 focus:border-brand focus:ring-sky-100"}`}
-              />
-              {errors.note && <p className="mt-1.5 text-sm text-red-600">{errors.note}</p>}
-            </div>
-
-            <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-950 ring-1 ring-amber-200">
-              <input type="checkbox" name="agree" required defaultChecked={v.agree} className="mt-0.5 h-4 w-4 shrink-0 accent-brand" />
-              <span>
-                I understand that no payment is taken on the website. A NextGen Educator representative will call me, and the course will be assigned to me after the call and payment of the course fee of {formatINR(price.total)}{promo ? ` (after the ${promo.code} discount)` : ""}.
-              </span>
-            </label>
-            {errors.agree && <p className="mt-1.5 text-sm text-red-600">{errors.agree}</p>}
-
-            {errors.promo && (
-              <div role="alert" className="mt-6 flex flex-col gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200 sm:flex-row sm:items-center sm:justify-between">
-                <p>{errors.promo}</p>
-                <button type="button" onClick={() => setPromo(null)} className="shrink-0 font-semibold underline">Remove code</button>
-              </div>
+                {online.enabled && !editing && (
+                  <p className="mt-4 text-center text-sm text-slate-600">
+                    Changed your mind?{" "}
+                    <button type="button" onClick={() => setCallMode(false)} className="font-semibold text-brand-ink hover:underline">Pay online now and start instantly</button>
+                  </p>
+                )}
+              </>
             )}
-
-            <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-between">
-              <button type="button" onClick={back} className="btn-secondary">Back</button>
-              <button type="submit" disabled={pending} className="btn-primary px-6 py-3.5 text-base disabled:opacity-60">
-                {pending ? "Submitting…" : editing ? "Save call preference" : "Confirm enrollment request"} {!pending && <IconArrowRight className="h-4 w-4" />}
-              </button>
-            </div>
           </section>
         </form>
 
@@ -259,14 +328,21 @@ export default function CheckoutWizard({ editing, learner, course, call, promo: 
               <p className="mt-0.5 text-xs text-slate-300">{course.program}</p>
             </div>
             <div className="p-5">
-              <PriceLines price={price} />
+              <PriceLines price={price} dueToday={payOnline ? price.total : 0} />
               <ol className="mt-5 space-y-3 border-t border-slate-100 pt-5 text-sm">
-                {[
-                  { icon: IconCheck, text: "Confirm your enrollment request" },
-                  { icon: IconPhone, text: "Short telephonic round with our representative" },
-                  { icon: IconWallet, text: "Pay the course fee using the details shared on the call" },
-                  { icon: IconBook, text: "Course assigned — start learning" },
-                ].map(({ icon: Icon, text }, i) => (
+                {(payOnline
+                  ? [
+                      { icon: IconCheck, text: "Confirm your details and order" },
+                      { icon: IconWallet, text: "Pay securely by UPI, card or netbanking" },
+                      { icon: IconBook, text: "Course unlocks instantly — start learning" },
+                    ]
+                  : [
+                      { icon: IconCheck, text: "Confirm your enrollment request" },
+                      { icon: IconPhone, text: "Short telephonic round with our representative" },
+                      { icon: IconWallet, text: "Pay the course fee using the details shared on the call" },
+                      { icon: IconBook, text: "Course assigned — start learning" },
+                    ]
+                ).map(({ icon: Icon, text }, i) => (
                   <li key={text} className="flex items-start gap-3">
                     <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${i === 0 ? "bg-orange-50 text-accent-strong" : "bg-slate-100 text-slate-500"}`}><Icon className="h-3.5 w-3.5" /></span>
                     <span className="pt-1 text-slate-600">{text}</span>
@@ -281,10 +357,10 @@ export default function CheckoutWizard({ editing, learner, course, call, promo: 
   );
 }
 
-function Stepper({ step }: { step: number }) {
+function Stepper({ step, steps }: { step: number; steps: string[] }) {
   return (
     <ol className="grid grid-cols-4 gap-2" aria-label="Enrollment steps">
-      {STEPS.map((label, i) => {
+      {steps.map((label, i) => {
         const done = i < step;
         const current = i === step;
         return (
@@ -374,7 +450,7 @@ function PromoBox({ promo, onChange }: { promo: AppliedPromo | null; onChange: (
   );
 }
 
-function PriceLines({ price }: { price: Price }) {
+function PriceLines({ price, dueToday }: { price: Price; dueToday: number }) {
   return (
     <dl className="space-y-2 text-sm">
       <div className="flex justify-between gap-3"><dt className="text-slate-600">Course fee</dt><dd className={`font-semibold ${price.promo ? "text-slate-400 line-through" : "text-navy-900"}`}>{formatINR(price.list)}</dd></div>
@@ -390,7 +466,7 @@ function PriceLines({ price }: { price: Price }) {
         <dd className="font-display text-2xl font-bold text-navy-900">{formatINR(price.total)}</dd>
       </div>
       <div className="flex justify-between gap-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-        <dt>Due today</dt><dd>{formatINR(0)}</dd>
+        <dt>Due today</dt><dd>{formatINR(dueToday)}</dd>
       </div>
     </dl>
   );

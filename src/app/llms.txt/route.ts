@@ -1,7 +1,8 @@
+import { razorpayEnabled } from "@/lib/razorpay";
 import { connection } from "next/server";
 import { formatINR, launchLabel, priceWithGst } from "@/lib/catalog";
 import { getPublicCatalog } from "@/lib/catalogStore";
-import { FAQS } from "@/components/home/Faq";
+import { faqs } from "@/components/home/Faq";
 import { OFFICES, ORG, SISTER_PLATFORMS, SITE_URL } from "@/lib/organization";
 
 /**
@@ -26,7 +27,7 @@ export async function GET() {
     "",
     "1. Register for free at " + url("/register") + ".",
     "2. Complete a profile with a masked Aadhaar or PAN card and a CV; the team verifies every educator.",
-    "3. Request a free course, or enroll in a paid course. There is no online payment: a representative calls the learner, shares payment details, and the course is then assigned.",
+    (razorpayEnabled() ? "3. Request a free course, or enroll in a paid course and pay online (UPI, cards, netbanking via Razorpay) for instant access — or ask a representative to call first." : "3. Request a free course, or enroll in a paid course. There is no online payment: a representative calls the learner, shares payment details, and the course is then assigned."),
     "4. Learn online at your own pace, on a phone or computer.",
     "5. After finishing every course in a program, take the timed, auto-graded certification exam.",
     `6. Passing issues a digital certificate with a credential ID and QR code that anyone can verify at ${url("/verify")}.`,
@@ -39,7 +40,7 @@ export async function GET() {
     "",
     "## Frequently asked questions",
     "",
-    ...FAQS.filter(([q]) => !q.startsWith("Can my school")).flatMap(([q, a]) => [`### ${q}`, "", a, ""]),
+    ...faqs().filter(([q]) => !q.startsWith("Can my school")).flatMap(([q, a]) => [`### ${q}`, "", a, ""]),
     "## Contact and offices",
     "",
     `- Phone: ${ORG.phone.label}`,

@@ -5,6 +5,7 @@ import { proposalPrograms, proposalStats } from "@/lib/proposal/data";
 import type { ProposalOrg } from "@/lib/proposal/pdf";
 import type { ProposalInput } from "@/lib/proposal/types";
 import { listProposals } from "@/lib/proposals";
+import { razorpayEnabled } from "@/lib/razorpay";
 import { getSettings } from "@/lib/settings";
 
 type Admin = { firstName: string; lastName: string; email: string };
@@ -29,5 +30,5 @@ export async function proposalEditorData(admin: Admin) {
   const sender: Pick<ProposalInput, "preparedBy" | "preparedByTitle" | "preparedPhone" | "preparedEmail"> = last
     ? { preparedBy: last.preparedBy, preparedByTitle: last.preparedByTitle, preparedPhone: last.preparedPhone, preparedEmail: last.preparedEmail }
     : { preparedBy: `${admin.firstName} ${admin.lastName}`.trim(), preparedByTitle: "", preparedPhone: phone, preparedEmail: settings.supportEmail || admin.email };
-  return { programs, org, stats: proposalStats(programs), attemptsPerDay: EXAM_ATTEMPT_POLICY.maxAttempts, sender };
+  return { programs, org, stats: proposalStats(programs), attemptsPerDay: EXAM_ATTEMPT_POLICY.maxAttempts, onlinePayments: razorpayEnabled(), sender };
 }

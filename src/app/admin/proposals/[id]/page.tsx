@@ -19,7 +19,7 @@ async function EditProposal({ params, searchParams }: { params: P["params"]; sea
   if (!admin) return <AccessDenied />;
   const [proposal, sp] = await Promise.all([getProposal(id), searchParams]);
   if (!proposal) notFound();
-  const { programs, org, stats, attemptsPerDay } = await proposalEditorData(admin);
+  const { programs, org, stats, attemptsPerDay, onlinePayments } = await proposalEditorData(admin);
   const { ref, createdAt, downloadedAt } = proposal;
   // Re-clean against today's catalog: programmes deleted since the proposal was saved drop out.
   const input = cleanProposal(proposal, programs.map((p) => p.id));
@@ -38,7 +38,7 @@ async function EditProposal({ params, searchParams }: { params: P["params"]; sea
         <ConfirmDelete action={deleteProposalAction} id={proposal.id} name={`the proposal for ${proposal.schoolName}`} label="Delete proposal" />
       </div>
       <div className="mt-6">
-        <ProposalEditor key={proposal.id} initial={input} saved={{ id: proposal.id, ref }} programs={programs} org={org} stats={stats} attemptsPerDay={attemptsPerDay} autoDownload={sp.download === "1"} />
+        <ProposalEditor key={proposal.id} initial={input} saved={{ id: proposal.id, ref }} programs={programs} org={org} stats={stats} attemptsPerDay={attemptsPerDay} onlinePayments={onlinePayments} autoDownload={sp.download === "1"} />
       </div>
     </>
   );
