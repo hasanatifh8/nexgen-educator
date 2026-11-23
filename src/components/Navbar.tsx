@@ -99,8 +99,7 @@ export function NavbarView({ user, loading = false, pathname }: NavbarProps & { 
           ) : (
             <>
               <Link href="/login" className="btn px-3 text-navy-900 hover:text-brand-ink">Log In</Link>
-              <Link href="/register" className="btn-secondary">Register</Link>
-              <Link href="/#practice-tests" className="btn-primary hidden xl:inline-flex">Start Free Assessment</Link>
+              <Link href="/register" className="btn-primary">Register free</Link>
             </>
           )}
         </div>
@@ -161,9 +160,9 @@ export function NavbarView({ user, loading = false, pathname }: NavbarProps & { 
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <Link href="/login" onClick={() => setOpen(false)} className="btn-secondary">Log In</Link>
-                  <Link href="/register" onClick={() => setOpen(false)} className="btn bg-navy-900 text-white hover:bg-navy-800">Register</Link>
+                  <Link href="/register" onClick={() => setOpen(false)} className="btn-primary">Register free</Link>
                 </div>
-                <Link href="/#practice-tests" onClick={() => setOpen(false)} className="btn-primary">Start Free Assessment</Link>
+                <Link href="/#practice-tests" onClick={() => setOpen(false)} className="btn bg-navy-900 text-white hover:bg-navy-800">Try a free practice test</Link>
               </>
             )}
           </div>

@@ -1,3 +1,5 @@
+import { EXAM_ATTEMPT_POLICY } from "./access";
+
 /**
  * Career-outcome copy for marketing pages, kept in one place so it can be edited without touching layout.
  *
@@ -8,27 +10,53 @@
  */
 
 export const HERO = {
-  eyebrow: "Professional teaching credentials · QR-verifiable",
-  headline: "Bridge the pedagogical gap.",
-  headlineAccent: "Go from applicant to top-choice educator.",
+  eyebrow: "Made for teachers in Indian schools",
+  headline: "Schools are changing fast.",
+  headlineAccent: "Make sure your career keeps up.",
   lede:
-    "Earn verifiable credentials that demonstrate modern teaching mastery to school hiring committees — built on classroom-tested practice in AI-assisted teaching, assessment design and classroom management.",
+    "AI, smart classrooms and NEP 2020 are changing what schools expect from teachers. Learn the new skills step by step, in simple language, at your own pace. Then earn a certificate that proves it, even if you have never been “good with computers”.",
 };
 
-/** Headline value propositions — positioned in the hero, the certificate showcase and the outcomes band. */
+/** Headline value propositions, used in the hero, the certificate showcase and the outcomes section. */
 export const OUTCOME_QUOTES = [
   {
-    quote: "Strengthen your CV with classroom-tested credentials built for the standards premier schools hire against.",
-    context: "Resume strength",
+    quote: "Walk into your next interview with proof of modern teaching skills, not just experience.",
+    context: "Your next interview",
   },
   {
-    quote: "Bridge the pedagogical gap — transform your resume from applicant to top-choice educator.",
-    context: "Career advancement",
+    quote: "Your years of experience are your strength. Add today’s skills to them, and no school can overlook you.",
+    context: "Career growth",
   },
   {
-    quote: "Earn verifiable credentials that demonstrate modern teaching mastery to school hiring committees.",
-    context: "Hiring credibility",
+    quote: "A certificate any principal can check in seconds, with your score on it.",
+    context: "Trusted by design",
   },
+] as const;
+
+/** The worries we hear from teachers. Framed as feelings, not statistics, so nothing here needs a source. */
+export const TEACHER_WORRIES = [
+  { title: "“Interviews now ask about AI and smart classes.”", body: "And you are not sure what to say, because nobody ever trained you on it." },
+  { title: "“Younger teachers seem so comfortable with technology.”", body: "You have years of real classroom experience, but the CV doesn’t show anything new." },
+  { title: "“I’m worried about my job, salary and promotion.”", body: "Schools are restructuring, and you want to be the teacher they cannot do without." },
+  { title: "“I don’t know where to start, and I have no time.”", body: "Between classes, copies and family, a long, complicated course is simply not possible." },
+] as const;
+
+/** Reassurance for teachers with little technical confidence. Every line must stay true of the product. */
+export const BUILT_FOR_YOU = [
+  { title: "Starts from zero", body: "Our beginner courses explain everything in simple English, from what AI is to how to use it safely in class. No technical background needed." },
+  { title: "Short lessons that fit your day", body: "Most lessons take 10–15 minutes, so you can learn in a free period or after school, at your own pace." },
+  { title: "Works on your phone", body: "No app to install and no laptop needed. Open the website on any smartphone and continue where you stopped." },
+  { title: "Many courses are free", body: "Registration is free and many full courses cost nothing. Paid courses are priced for a teacher’s budget, with no surprise charges." },
+  { title: "A real person helps you", body: "For paid courses our team calls you before you pay, answers your questions and helps you choose. Nothing is paid on the website." },
+  { title: "You can try again", body: `Didn’t pass the exam the first time? Revise the lessons and try again. You get up to ${EXAM_ATTEMPT_POLICY.maxAttempts} attempts a day.` },
+] as const;
+
+/** Who the programs are for, so a visitor can recognise themselves. */
+export const TEACHER_PERSONAS = [
+  { title: "Pre-primary & primary teachers", body: "Play-based, joyful teaching for Playgroup to Class 5, in line with NEP 2020." },
+  { title: "Science & subject teachers", body: "Use AI to plan lessons, make worksheets and explain hard topics in Classes 5–10." },
+  { title: "English & language teachers", body: "Level reading passages, give feedback faster and build writing skills in Classes 6–12." },
+  { title: "Teachers new to AI", body: "Never used ChatGPT or Gemini? Begin with a free, friendly introduction made for class teachers." },
 ] as const;
 
 /** What a hiring committee can actually confirm from one of our credentials — all true of the product today. */
@@ -41,7 +69,7 @@ export const HIRING_SIGNALS = [
 
 /** Before / after framing used in the outcomes section. */
 export const CV_TRANSFORM = {
-  before: { label: "Typical applicant CV", lines: ["B.Ed., 4 years’ experience", "“Familiar with educational technology”", "“Strong classroom management”"] },
+  before: { label: "A typical teacher’s CV", lines: ["B.Ed., 8 years’ experience", "“Basic computer knowledge”", "“Good classroom management”"] },
   after: {
     label: "With NextGen credentials",
     lines: ["Certified AI-Ready Educator — Credential NGE-2026-…", "Rubric Design Certificate — 90% exam score", "Each line links to a live, QR-verified record"],

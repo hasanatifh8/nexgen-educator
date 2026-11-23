@@ -2,11 +2,11 @@ import Link from "next/link";
 import { IconBadge, IconBook, IconCheck, IconShield, IconSparkles } from "../Icons";
 
 const steps = [
-  { icon: IconSparkles, title: "Register free", body: "Create your account in under a minute." },
-  { icon: IconShield, title: "Complete your profile", body: "Add your details, Aadhaar or PAN, and CV for verification." },
-  { icon: IconCheck, title: "Get your courses", body: "Our team assigns the free or premium courses you request." },
-  { icon: IconBook, title: "Learn at your pace", body: "Bite-sized lessons, scenarios and knowledge checks." },
-  { icon: IconBadge, title: "Get certified", body: "Finish the courses, pass the exam, share your QR-verified certificate." },
+  { icon: IconSparkles, title: "Register free", body: "Just your name, email and phone. Takes under a minute." },
+  { icon: IconShield, title: "Complete your profile", body: "Upload your ID and CV once, so your certificate is trusted by schools." },
+  { icon: IconCheck, title: "Get your courses", body: "Pick a course. Our team unlocks it for you, and calls you first for paid ones." },
+  { icon: IconBook, title: "Learn at your pace", body: "Short, simple lessons on your phone, whenever you have a free moment." },
+  { icon: IconBadge, title: "Get certified", body: "Pass the online exam and download your certificate the same day." },
 ];
 
 export default function HowItWorks() {
@@ -15,8 +15,8 @@ export default function HowItWorks() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <span className="eyebrow">How it works</span>
-          <h2 className="section-title mt-4">From sign-up to certified in five steps</h2>
-          <p className="mt-4 text-lg text-slate-600">A verified, guided path — so every certificate we issue means something.</p>
+          <h2 className="section-title mt-4">Five simple steps to your certificate</h2>
+          <p className="mt-4 text-lg text-slate-600">We guide you at every step. You never have to figure it out alone.</p>
         </div>
         <ol className="relative mt-14 grid gap-6 md:grid-cols-5">
           <span className="absolute top-7 right-[10%] left-[10%] hidden h-0.5 bg-gradient-to-r from-brand via-brand-teal to-accent md:block" aria-hidden="true" />

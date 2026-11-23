@@ -18,11 +18,11 @@ export default function Institutions() {
           <div className="relative grid items-center gap-10 lg:grid-cols-2">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold tracking-wide text-sky-200 uppercase">
-                <IconBuilding className="h-4 w-4" /> For schools & districts
+                <IconBuilding className="h-4 w-4" /> For schools & principals
               </span>
-              <h2 className="mt-5 font-display text-3xl font-bold tracking-tight sm:text-4xl">Upskill your entire faculty — and prove it.</h2>
+              <h2 className="mt-5 font-display text-3xl font-bold tracking-tight sm:text-4xl">Train your whole staff and show the results.</h2>
               <p className="mt-4 text-lg text-slate-300">
-                Roll out professional development at scale with measurable outcomes and credentials your teachers will actually value.
+                Meet your NEP 2020 professional development goals with courses your teachers can finish, and certificates they will be proud of.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#" className="btn-primary px-6 py-3">Request a Demo <IconArrowRight className="h-4 w-4" /></a>

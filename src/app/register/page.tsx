@@ -7,13 +7,13 @@ import RegisterForm from "./RegisterForm";
 
 export const metadata: Metadata = {
   title: "Create your account",
-  description: "Register for free to access courses, practice tests, and verifiable teaching certifications.",
+  description: "Register free to start simple, self-paced courses for teachers in India and earn a verifiable certificate.",
 };
 
 const perks = [
-  { icon: IconBook, title: "Free starter modules", body: "Begin learning modern pedagogy today." },
-  { icon: IconTimer, title: "Practice tests", body: "Timed, scenario-based diagnostics." },
-  { icon: IconBadge, title: "Verifiable credentials", body: "QR-verified certificates for your resume." },
+  { icon: IconBook, title: "Start from zero", body: "Simple English lessons. No technical skills needed." },
+  { icon: IconTimer, title: "10–15 minute lessons", body: "Learn on your phone, at your own pace." },
+  { icon: IconBadge, title: "A certificate schools trust", body: "Add it to your CV and LinkedIn. Any school can verify it." },
 ];
 
 export default function RegisterPage() {
@@ -26,8 +26,8 @@ export default function RegisterPage() {
             <div className="bg-grid absolute inset-0" aria-hidden="true" />
             <div className="absolute -right-20 -bottom-24 h-72 w-72 rounded-full bg-brand/30 blur-3xl" aria-hidden="true" />
             <div className="relative">
-              <p className="text-xs font-semibold tracking-[0.2em] text-sky-300 uppercase">Train. Test. Certify.</p>
-              <h2 className="mt-4 font-display text-3xl font-bold leading-tight">Join 10,000+ certified educators.</h2>
+              <p className="text-xs font-semibold tracking-[0.2em] text-sky-300 uppercase">Made for Indian teachers</p>
+              <h2 className="mt-4 font-display text-3xl font-bold leading-tight">Today is the first step towards a stronger career.</h2>
               <ul className="mt-10 space-y-6">
                 {perks.map(({ icon: Icon, title, body }) => (
                   <li key={title} className="flex gap-4">
@@ -43,10 +43,11 @@ export default function RegisterPage() {
               </ul>
               <figure className="mt-12 rounded-2xl border border-white/10 bg-white/5 p-6">
                 <blockquote className="text-sm leading-relaxed text-slate-200">
-                  “The AI Tools course saved me hours of planning every week — and the certificate helped me land a coaching role.”
+                  Your years in the classroom are your biggest strength. These courses simply add today’s skills to them, one
+                  small lesson at a time.
                 </blockquote>
                 <figcaption className="mt-4 flex items-center gap-2 text-xs text-slate-400">
-                  <IconCheck className="h-4 w-4 text-brand-teal" /> Sample testimonial · Grade 8 Science Teacher
+                  <IconCheck className="h-4 w-4 text-brand-teal" /> Registration is free · Nothing is paid on the website
                 </figcaption>
               </figure>
             </div>
@@ -54,7 +55,7 @@ export default function RegisterPage() {
 
           <section className="card p-6 sm:p-10">
             <h1 className="font-display text-3xl font-bold tracking-tight text-navy-900">Create your free account</h1>
-            <p className="mt-2 text-slate-600">No credit card required. Takes less than a minute.</p>
+            <p className="mt-2 text-slate-600">Registration is free. No payment needed, and it takes less than a minute.</p>
             <div className="mt-8">
               <Suspense fallback={<div className="h-[640px] animate-pulse rounded-xl bg-slate-100" />}>
                 <RegisterForm />

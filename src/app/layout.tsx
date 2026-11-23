@@ -26,10 +26,10 @@ export const metadata: Metadata = {
     siteName: ORG.name,
     locale: "en_IN",
     url: "/",
-    title: "NextGen Educator — Train. Test. Certify.",
+    title: "NextGen Educator — Future-proof your teaching career",
     description: DESCRIPTION,
   },
-  twitter: { card: "summary_large_image", title: "NextGen Educator — Train. Test. Certify.", description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: "NextGen Educator — Future-proof your teaching career", description: DESCRIPTION },
   // Add these in Vercel → Settings → Environment Variables once you register the site with Google / Bing.
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),

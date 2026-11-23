@@ -29,8 +29,8 @@ export default function CredentialShowcase({ programs, courses, settings }: Prop
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <span className="eyebrow">Certification programs</span>
-          <h2 id="credentials-title" className="section-title mt-4">Preview the credential before you start</h2>
-          <p className="section-lede">{OUTCOME_QUOTES[2].quote} Pick a program to see its path, the competencies it assesses and the certificate you’ll earn.</p>
+          <h2 id="credentials-title" className="section-title mt-4">See the certificate you will earn</h2>
+          <p className="section-lede">{OUTCOME_QUOTES[2].quote} Pick a program to see its courses, what you will learn and your certificate.</p>
         </div>
 
         {/* Program cards (radio-group semantics: one program is always selected) */}
@@ -107,7 +107,7 @@ export default function CredentialShowcase({ programs, courses, settings }: Prop
 
             {competencies.length > 0 && (
               <>
-                <p className="mt-8 text-xs font-bold tracking-wide text-slate-500 uppercase">Core competencies assessed</p>
+                <p className="mt-8 text-xs font-bold tracking-wide text-slate-500 uppercase">Skills you will learn</p>
                 <ul className="mt-3 grid gap-2">
                   {competencies.map((o) => (
                     <li key={o} className="flex gap-2.5 text-sm text-slate-700">

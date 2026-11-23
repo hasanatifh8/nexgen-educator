@@ -4,12 +4,12 @@ import { HeroCertificate } from "./home/HomeCatalog";
 import { HERO, OUTCOME_QUOTES, PARTNERS, PROOF_STATS } from "@/lib/marketing";
 import { IconArrowRight, IconBadge, IconCheck, IconShield, IconSparkles } from "./Icons";
 
-/** Facts about the credential itself — always true, so safe to show before there are learner numbers. */
+/** Plain-language facts for teachers who are new to online learning. Always true, so safe before there are learner numbers. */
 const credentialFacts = [
-  { value: "QR", label: "Verification on every certificate" },
-  { value: "ID-checked", label: "Holders verified before issue" },
-  { value: "Timed", label: "Scenario-based final exams" },
-  { value: "Instant", label: "Issued the moment you pass" },
+  { value: "₹0", label: "To register and start learning" },
+  { value: "10–15 min", label: "Typical lesson length" },
+  { value: "Any phone", label: "No laptop or app needed" },
+  { value: "Same day", label: "Certificate when you pass" },
 ];
 
 export default function Hero() {
@@ -31,13 +31,13 @@ export default function Hero() {
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-pretty text-slate-300">{HERO.lede}</p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Link href="/courses" className="btn-primary px-6 py-3.5 text-base">
-              Explore certifications <IconArrowRight className="h-4 w-4" />
+            <Link href="/register" className="btn-primary px-6 py-3.5 text-base">
+              Start learning free <IconArrowRight className="h-4 w-4" />
             </Link>
-            <a href="#finder" className="btn-ghost-dark px-6 py-3.5 text-base">Find my program in 30 seconds</a>
+            <a href="#finder" className="btn-ghost-dark px-6 py-3.5 text-base">Which course suits me?</a>
           </div>
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-300">
-            {["Free to register", "Free & paid courses", "Add to LinkedIn in one click"].map((t) => (
+            {["No technical skills needed", "Learn at your own pace", "Many courses free"].map((t) => (
               <li key={t} className="flex items-center gap-1.5">
                 <IconCheck className="h-4 w-4 text-brand-teal" /> {t}
               </li>

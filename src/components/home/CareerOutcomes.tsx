@@ -9,11 +9,11 @@ export default function CareerOutcomes() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div>
-            <span className="eyebrow">Career outcomes</span>
-            <h2 id="outcomes-title" className="section-title mt-4">A credential a hiring committee can check — not just a line on your CV</h2>
+            <span className="eyebrow">What changes for you</span>
+            <h2 id="outcomes-title" className="section-title mt-4">Turn your experience into proof that schools trust</h2>
             <p className="section-lede">
-              School leaders see hundreds of applications claiming “strong classroom practice.” A verifiable credential, with a score
-              and an issue date behind it, is evidence instead of an adjective.
+              Every principal reads CVs that say “good with technology.” Yours can show a certificate they can check in seconds, with
+              your exam score and date on it. That is the difference between being considered and being chosen.
             </p>
             <blockquote className="pull-quote mt-10">
               “{OUTCOME_QUOTES[1].quote}”
@@ -51,7 +51,7 @@ export default function CareerOutcomes() {
         {/* What the employer can verify */}
         <div className="mt-20">
           <h3 className="flex items-center gap-2 font-display text-xl font-bold text-navy-900">
-            <IconShield className="h-6 w-6 text-brand-ink" aria-hidden="true" /> What a hiring committee can confirm
+            <IconShield className="h-6 w-6 text-brand-ink" aria-hidden="true" /> Why principals trust this certificate
           </h3>
           <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {HIRING_SIGNALS.map((s, i) => (
