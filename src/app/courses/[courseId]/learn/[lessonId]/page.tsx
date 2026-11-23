@@ -9,7 +9,8 @@ import { IconArrowRight, IconCheck, IconChevronDown, IconClock } from "@/compone
 import type { Course } from "@/lib/catalog";
 import { canAccessCourse } from "@/lib/access";
 import { getCatalog } from "@/lib/catalogStore";
-import { requireLearner } from "@/lib/dal";
+import { requireUser } from "@/lib/dal";
+import { ORIENTATION_COURSE_ID, ORIENTATION_PROGRAM_ID } from "@/lib/orientation";
 import { completeLesson } from "../../actions";
 import CompleteButton from "./CompleteButton";
 
@@ -57,7 +58,10 @@ function Curriculum({ course, currentId, done }: { course: Course; currentId: st
 
 async function LessonView({ params }: { params: P["params"] }) {
   const { courseId, lessonId } = await params;
-  const user = await requireLearner(`/courses/${courseId}/learn/${lessonId}`);
+  const here = `/courses/${courseId}/learn/${lessonId}`;
+  const user = await requireUser(here);
+  // Only the orientation can be studied before the profile is complete.
+  if (courseId !== ORIENTATION_COURSE_ID && !user.isAdmin && !user.profileComplete) redirect(`/onboarding?next=${encodeURIComponent(here)}`);
   const { courses, programs } = await getCatalog();
   const course = courses.find((c) => c.id === courseId);
   const program = course && programs.find((p) => p.id === course.programId);
@@ -77,7 +81,7 @@ async function LessonView({ params }: { params: P["params"] }) {
       {/* Course bar */}
       <div className="sticky top-18 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Link href={`/courses/${course.id}`} className="-my-2 min-w-0 flex-1 truncate py-2.5 text-sm font-semibold text-navy-900 hover:text-brand-ink">
+          <Link href={program.orientation ? "/my-learning" : `/courses/${course.id}`} className="-my-2 min-w-0 flex-1 truncate py-2.5 text-sm font-semibold text-navy-900 hover:text-brand-ink">
             ← {course.title}
           </Link>
           <div className="hidden w-56 items-center gap-3 sm:flex">
@@ -128,6 +132,8 @@ async function LessonView({ params }: { params: P["params"] }) {
                   <Link href={`/courses/${course.id}/learn/${next.id}`} className="btn-primary px-6 py-3">
                     Next lesson <IconArrowRight className="h-4 w-4" />
                   </Link>
+                ) : program.id === ORIENTATION_PROGRAM_ID ? (
+                  <Link href={`/certifications/${program.id}/exam`} className="btn-primary px-6 py-3">Take the final quiz <IconArrowRight className="h-4 w-4" /></Link>
                 ) : (
                   <Link href={`/courses/${course.id}`} className="btn-primary px-6 py-3">Back to course overview</Link>
                 )
@@ -135,7 +141,7 @@ async function LessonView({ params }: { params: P["params"] }) {
                 <form action={completeLesson}>
                   <input type="hidden" name="courseId" value={course.id} />
                   <input type="hidden" name="lessonId" value={lesson.id} />
-                  <CompleteButton label={next ? "Mark complete & continue" : "Complete course"} />
+                  <CompleteButton label={next ? "Mark complete & continue" : program.id === ORIENTATION_PROGRAM_ID ? "Complete & take the quiz" : "Complete course"} />
                 </form>
               )}
             </div>

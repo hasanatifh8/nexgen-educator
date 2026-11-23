@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { hasPassedOrientation } from "@/lib/orientation";
 import { createSession, deleteSession } from "@/lib/session";
 import { onboardingPath, safeNextPath } from "@/lib/sessionToken";
 import { isAdminEmail } from "@/lib/dal";
@@ -34,8 +35,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   await createSession(user.id);
   const next = safeNextPath(formData.get("next"));
   if (isAdminEmail(user.email)) redirect(next ?? "/admin");
-  // Learners finish their profile before anything else.
-  if (!user.profile?.completedAt) redirect(onboardingPath(next));
+  // New learners start with the mandatory orientation (My Learning shows it as “Start here”), then the profile.
+  if (!user.profile?.completedAt) {
+    if (!hasPassedOrientation(user.examAttempts) && (!next || next === "/my-learning")) redirect("/my-learning");
+    redirect(onboardingPath(next));
+  }
   redirect(next ?? "/my-learning");
 }
 

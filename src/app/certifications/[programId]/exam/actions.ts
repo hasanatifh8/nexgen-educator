@@ -63,6 +63,8 @@ async function loadForUser(programId: string) {
       error:
         eligible.reason === "incomplete"
           ? `Finish ${eligible.remaining.map((r) => r.title).join(", ")} before taking this exam.`
+          : eligible.reason === "orientation"
+            ? "Complete the mandatory orientation and pass its quiz first — it unlocks every certification exam."
           : eligible.reason === "unverified"
             ? "Your identity documents must be verified by our team before you can sit the certification exam."
             : "This exam unlocks after all of the program’s courses are assigned to you and completed.",
@@ -77,7 +79,9 @@ export async function startExam(programId: string): Promise<StartResult> {
   if ("error" in r) return { ok: false, error: r.error! };
   const { user, program } = r;
   if (!program.exam.questions.length) return { ok: false, error: "This exam has no questions yet." };
-  if (user.certificates.some((c) => c.programId === program.id)) return { ok: false, error: "You’re already certified in this program." };
+  if (program.orientation ? user.orientationPassed : user.certificates.some((c) => c.programId === program.id)) {
+    return { ok: false, error: program.orientation ? "You’ve already passed the orientation quiz." : "You’re already certified in this program." };
+  }
 
   const opened = await startExamAttempt(user.id, program.id, ATTEMPT_POLICY);
   if ("error" in opened) {
@@ -137,7 +141,8 @@ export async function submitExam(token: string, answers: Record<string, number |
   const total = served.length;
   const passed = (score / total) * 100 >= program.exam.passPercent;
 
-  const closed = await finishExamAttempt(user.id, attempt.attemptId, { score, total, passed }, () => ({
+  // The orientation quiz records the pass but issues no certificate.
+  const closed = await finishExamAttempt(user.id, attempt.attemptId, { score, total, passed }, program.orientation ? null : () => ({
     programId: program.id,
     programTitle: program.title,
     // 8 hex chars ≈ 4 billion IDs per year — hard to guess when checking /verify links.

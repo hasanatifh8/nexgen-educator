@@ -6,6 +6,7 @@ import { INTRO_AI_COURSE, INTRO_AI_PROGRAM } from "./seed/introAiCourse";
 import { JOYFUL_COURSE, JOYFUL_PROGRAM } from "./seed/joyfulEarlyYears";
 import { SCIENCE_COURSE, SCIENCE_PROGRAM } from "./seed/scienceAiEducators";
 import { ENGLISH_COURSE, ENGLISH_PROGRAM } from "./seed/englishAiPedagogy";
+import { ORIENTATION_COURSE, ORIENTATION_PROGRAM } from "./seed/orientation";
 import { getJson, setJson, withLock } from "./store";
 
 /** Programs and courses, stored as one document (Postgres in production, data/catalog.json locally — see ./store). */
@@ -45,6 +46,7 @@ const PACKS: { id: string; programs: Program[]; courses: Course[] }[] = [
   { id: "joyful-early-years-2026-11", programs: [JOYFUL_PROGRAM], courses: [JOYFUL_COURSE] },
   { id: "science-educators-2026-11", programs: [SCIENCE_PROGRAM], courses: [SCIENCE_COURSE] },
   { id: "english-educators-2026-11", programs: [ENGLISH_PROGRAM], courses: [ENGLISH_COURSE] },
+  { id: "orientation-2026-11", programs: [ORIENTATION_PROGRAM], courses: [ORIENTATION_COURSE] },
 ];
 
 /** Once a server instance has seen every pack installed, it stops checking. */
@@ -108,8 +110,10 @@ export const getCatalog = cache(readCatalog);
  */
 export const getPublicCatalog = cache(async (): Promise<Catalog> => {
   const { programs, courses } = await getCatalog();
-  const offered = courses.filter((c) => !c.disabled);
-  return { programs: programs.filter((p) => offered.some((c) => c.programId === p.id)), courses: offered };
+  // The mandatory orientation is reached from My Learning, never listed or sold.
+  const hidden = new Set(programs.filter((p) => p.orientation).map((p) => p.id));
+  const offered = courses.filter((c) => !c.disabled && !hidden.has(c.programId));
+  return { programs: programs.filter((p) => !hidden.has(p.id) && offered.some((c) => c.programId === p.id)), courses: offered };
 });
 
 export async function getProgram(id: string) {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import Footer from "@/components/Footer";
@@ -50,6 +50,13 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
   if (!course || !program) notFound();
   // Disabled courses stay open only to admins and learners who were already assigned them.
   if (course.disabled && !(user?.isAdmin || user?.assignedCourses.includes(course.id))) notFound();
+
+  // The mandatory orientation has no sales page: go straight to the next lesson, or to its quiz when done.
+  if (program.orientation) {
+    if (!user) redirect(`/register?next=${encodeURIComponent(`/courses/${course.id}`)}`);
+    const p = courseProgress(course, user.progress[course.id]);
+    redirect(p.total > 0 && p.count === p.total ? `/certifications/${program.id}/exam` : `/courses/${course.id}/learn/${(p.next ?? p.lessons[0]).id}`);
+  }
 
   const here = `/courses/${course.id}`;
   const paid = course.price > 0;

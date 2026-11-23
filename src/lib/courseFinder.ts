@@ -2,18 +2,28 @@
  * The 30-second course finder: questions, the matching logic and shareable links that pre-fill answers
  * (e.g. /find-my-course?role=primary&goal=early). Client-safe.
  */
-import type { Category, CourseOutline, Level } from "./catalog";
+import { courseSubject, type Category, type CourseOutline, type Level, type Subject } from "./catalog";
 
 export const FINDER_PATH = "/find-my-course";
 
+/** Question 1 — who you are and, for subject teachers, what you teach. */
 export const FINDER_ROLES = {
-  teacher: "Classroom teacher",
-  primary: "Preschool / primary teacher",
-  leader: "School leader",
-  coach: "Instructional coach",
-  student: "Student teacher",
+  primary: "Pre-primary / primary teacher",
+  science: "Science teacher",
+  maths: "Maths teacher",
+  english: "English / language teacher",
+  social: "Social science teacher",
+  teacher: "Teacher of another subject",
+  leader: "School leader / coordinator",
+  student: "Student teacher (B.Ed / D.El.Ed)",
 } as const;
 export type FinderRole = keyof typeof FINDER_ROLES;
+
+/** The subject a role teaches, for matching subject-specific courses. */
+const ROLE_SUBJECT: Partial<Record<FinderRole, Subject>> = { science: "science", maths: "maths", english: "english", social: "social" };
+const SUBJECT_NOUN: Record<Subject, string> = { all: "all", science: "science", maths: "maths", english: "English", social: "social science", hindi: "language", computer: "computer science" };
+/** Older links used other role names. */
+const ROLE_ALIASES: Record<string, FinderRole> = { coach: "leader" };
 
 export const FINDER_GOALS = {
   ai: { label: "Use AI in my teaching", category: "AI Tools for Teachers", hint: "Plan faster, differentiate smarter" },
@@ -39,7 +49,8 @@ const pick = <T extends string>(obj: Record<T, unknown>, v: unknown): T | undefi
 /** Reads pre-filled answers from search params; unknown values are ignored. */
 export function parseFinderAnswers(sp: Record<string, string | string[] | undefined>): FinderAnswers {
   const one = (k: string) => (typeof sp[k] === "string" ? sp[k] : undefined);
-  return { role: pick(FINDER_ROLES, one("role")), goal: pick(FINDER_GOALS, one("goal")), level: pick(FINDER_LEVELS, one("level")) };
+  const role = one("role");
+  return { role: pick(FINDER_ROLES, role) ?? (role ? ROLE_ALIASES[role] : undefined), goal: pick(FINDER_GOALS, one("goal")), level: pick(FINDER_LEVELS, one("level")) };
 }
 
 export function finderHref(a: FinderAnswers = {}) {
@@ -52,17 +63,27 @@ const RANK: Record<Level, number> = { Beginner: 0, Intermediate: 1, Advanced: 2 
 export type Recommendation<C> = { c: C; score: number; reasons: string[] };
 
 /** Top three courses people can join today for these answers. */
-export function recommendCourses<C extends Pick<CourseOutline, "category" | "level" | "price" | "lessonCount" | "launch">>(
+export function recommendCourses<C extends Pick<CourseOutline, "category" | "level" | "price" | "lessonCount" | "launch" | "subject" | "title" | "blurb">>(
   courses: C[],
   a: Required<FinderAnswers>,
 ): Recommendation<C>[] {
   const goal = FINDER_GOALS[a.goal];
   const level = FINDER_LEVELS[a.level].level;
+  const mySubject = ROLE_SUBJECT[a.role];
   return courses
     .filter((c) => !c.launch)
+    // Subject courses only go to teachers of that subject (a science course is no use to an English teacher).
+    .filter((c) => {
+      const s = courseSubject(c);
+      return s === "all" || s === mySubject;
+    })
     .map((c) => {
       const reasons: string[] = [];
       let score = 0;
+      if (mySubject && courseSubject(c) === mySubject) {
+        score += 6;
+        reasons.push(`Made for ${SUBJECT_NOUN[mySubject]} teachers`);
+      }
       if (!goal.category || c.category === goal.category) {
         score += 4;
         if (goal.category) reasons.push("Matches your goal");
@@ -79,7 +100,7 @@ export function recommendCourses<C extends Pick<CourseOutline, "category" | "lev
         score += 2;
         reasons.push("Made for early-years teachers");
       }
-      if (a.role === "coach" && c.level !== "Beginner") score += 0.5;
+
       if (c.lessonCount > 0) score += 0.5;
       return { c, score, reasons };
     })

@@ -12,6 +12,7 @@ import type { SiteSettings } from "@/lib/siteSettings";
 import type { EarnedCertificate } from "@/lib/users";
 import { EXAM_ATTEMPT_POLICY } from "@/lib/access";
 import LinkedInAddButton from "@/components/LinkedInAddButton";
+import { ORIENTATION_COURSE_ID } from "@/lib/orientation";
 import { startExam, submitExam, type LearnerQuestion, type SubmitResult } from "./actions";
 
 type Props = {
@@ -22,6 +23,8 @@ type Props = {
   questionCount: number;
   userName: string;
   settings: SiteSettings;
+  /** The mandatory orientation quiz: no certificate; passing unlocks every certification exam. */
+  orientation?: boolean;
 };
 
 type Phase = "intro" | "exam" | "results";
@@ -29,7 +32,7 @@ type Phase = "intro" | "exam" | "results";
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const formatDate = formatCertDate;
 
-export default function CertExam({ programId, title, minutes, passPercent, questionCount, userName, settings }: Props) {
+export default function CertExam({ programId, title, minutes, passPercent, questionCount, userName, settings, orientation = false }: Props) {
   const certData = (c: EarnedCertificate) => ({
     name: c.holderName ?? userName,
     title: c.programTitle,
@@ -141,9 +144,9 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
   return (
     <div ref={cardRef} className="card scroll-mt-24 overflow-hidden">
       <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
-        <span className="truncate text-xs font-semibold text-slate-600">{title} — Certification Exam</span>
+        <span className="truncate text-xs font-semibold text-slate-600">{title} — {orientation ? "Orientation quiz" : "Certification Exam"}</span>
         <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-emerald-600">
-          <IconTimer className="h-4 w-4" /> Timed exam · single attempt
+          <IconTimer className="h-4 w-4" /> {orientation ? "Timed quiz" : "Timed exam"} · single attempt
         </span>
       </div>
 
@@ -170,13 +173,13 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
               "You can move between questions before submitting.",
               `You have up to ${EXAM_ATTEMPT_POLICY.maxAttempts} attempts every 24 hours; each attempt can be submitted once.`,
               "Questions and answer options are shuffled for every attempt.",
-              "Pass to receive a QR-verifiable certificate in your name.",
+              orientation ? "There is no certificate for this quiz — passing it unlocks every certification exam on NextGen Educator." : "Pass to receive a QR-verifiable certificate in your name.",
             ].map((t) => (
               <li key={t} className="flex gap-2"><IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-ink" /> {t}</li>
             ))}
           </ul>
           <button onClick={begin} disabled={pending} className="btn-primary mt-8 w-full py-3.5 text-base">
-            {pending ? "Preparing exam…" : <>Start Exam <IconArrowRight className="h-4 w-4" /></>}
+            {pending ? (orientation ? "Preparing quiz…" : "Preparing exam…") : <>{orientation ? "Start the quiz" : "Start Exam"} <IconArrowRight className="h-4 w-4" /></>}
           </button>
         </div>
       )}
@@ -184,7 +187,7 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
       {phase === "exam" && q && typeof document !== "undefined" &&
         createPortal(
           // Full-screen exam mode: no site header, hero or footer, so nothing can be tapped by accident.
-          <div role="dialog" aria-modal="true" aria-label={`${title} certification exam`} className="fixed inset-0 z-50 flex flex-col bg-slate-50">
+          <div role="dialog" aria-modal="true" aria-label={`${title} ${orientation ? "quiz" : "certification exam"}`} className="fixed inset-0 z-50 flex flex-col bg-slate-50">
             <header className="shrink-0 border-b border-slate-200 bg-white">
               <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
                 <div className="min-w-0 flex-1">
@@ -331,7 +334,7 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
             <ScoreRing score={result.score} total={result.total} passed={result.passed} />
             <div className="text-center sm:text-left">
               <p className={`text-sm font-bold tracking-wide uppercase ${result.passed ? "text-emerald-600" : "text-accent-strong"}`}>
-                {result.passed ? "Passed — certified!" : "Not yet passed"}
+                {result.passed ? (orientation ? "Passed — orientation complete!" : "Passed — certified!") : "Not yet passed"}
               </p>
               <h2 className="font-display text-2xl font-bold text-navy-900">
                 {result.score} of {result.total} correct
@@ -369,7 +372,16 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
             </p>
           )}
 
-          {result.passed && result.certificate ? (
+          {result.passed && orientation ? (
+            <div className="mt-8 rounded-2xl bg-emerald-50 p-6 ring-1 ring-emerald-200">
+              <p className="font-display text-lg font-bold text-emerald-900">Well done — you’ve completed your orientation!</p>
+              <p className="mt-1 text-sm text-emerald-900">Every certification exam on NextGen Educator is now unlocked for you. Next, complete your profile and choose your first course.</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Link href="/my-learning" className="btn-primary">Go to My Learning <IconArrowRight className="h-4 w-4" /></Link>
+                <Link href="/find-my-course" className="btn-secondary">Find my first course</Link>
+              </div>
+            </div>
+          ) : result.passed && result.certificate ? (
             <>
               <h3 className="mt-8 text-sm font-semibold text-navy-900">Your certificate</h3>
               <div className="mt-3">
@@ -384,9 +396,9 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
           ) : (
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               <button onClick={begin} disabled={pending || attemptsLeft === 0} className="btn-primary">
-                <IconRefresh className="h-4 w-4" /> {attemptsLeft === 0 ? "No attempts left today" : "Retake Exam"}
+                <IconRefresh className="h-4 w-4" /> {attemptsLeft === 0 ? "No attempts left today" : orientation ? "Retake the quiz" : "Retake Exam"}
               </button>
-              <Link href="/courses" className="btn-secondary">Review courses</Link>
+              <Link href={orientation ? `/courses/${ORIENTATION_COURSE_ID}` : "/courses"} className="btn-secondary">{orientation ? "Review the lessons" : "Review courses"}</Link>
             </div>
           )}
         </div>

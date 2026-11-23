@@ -38,6 +38,11 @@ async function Programs({ searchParams }: { searchParams: PageProps<"/admin/prog
                   <td className="px-5 py-4">
                     <p className="font-semibold text-navy-900">{p.title}</p>
                     <p className="text-xs text-slate-500">{p.category} · {p.level}</p>
+                    {p.orientation && (
+                      <p className="mt-1 inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-accent-strong ring-1 ring-orange-200">
+                        Mandatory orientation · no certificate · hidden from the public catalog
+                      </p>
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     {p.price === 0 ? (

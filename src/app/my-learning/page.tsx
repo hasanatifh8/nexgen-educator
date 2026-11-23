@@ -7,6 +7,8 @@ import { formatINR, priceShort } from "@/lib/catalog";
 import { paymentRows, resumeStage } from "@/lib/learner";
 import { CATEGORY_ACCENT } from "@/lib/styles";
 import { loadLearner } from "./data";
+import OrientationCard from "./OrientationCard";
+import { ORIENTATION_COURSE_ID } from "@/lib/orientation";
 import { Panel, Pill, portalSkeleton, type Tone } from "./ui";
 
 const RESUME_COPY = {
@@ -41,6 +43,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
 
   const journey = [
     { label: "Account created", done: true },
+    { label: "Orientation passed", done: user.orientationPassed, href: `/courses/${ORIENTATION_COURSE_ID}` },
     { label: "Profile submitted", done: user.profileComplete, href: "/onboarding" },
     { label: "Identity verified", done: v === "verified" },
     { label: "Courses approved", done: mine.length > 0, href: "/courses" },
@@ -52,7 +55,9 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
   const journeyPct = Math.round((journey.filter((s) => s.done).length / journey.length) * 100);
 
   // The single most useful thing to do next.
-  const action = !user.profileComplete
+  const action = !user.orientationPassed && !user.isAdmin
+    ? { title: "Start here: complete your orientation", text: "A short, friendly course on AI basics and how NextGen works, with a 10-question quiz. It’s mandatory, and it unlocks every certification exam.", href: `/courses/${ORIENTATION_COURSE_ID}`, cta: user.progress[ORIENTATION_COURSE_ID]?.length ? "Continue orientation" : "Start orientation" }
+    : !user.profileComplete
     ? { title: "Complete your profile", text: "Upload your Aadhaar or PAN and your CV so our team can verify you and approve courses.", href: "/onboarding", cta: "Complete profile" }
     : v === "rejected"
       ? { title: "Update your documents", text: user.verification.note || "Our team could not verify your documents.", href: "/onboarding", cta: "Update profile" }
@@ -97,6 +102,8 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
         </div>
       </section>
 
+      <OrientationCard user={user} catalog={catalog} />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "Courses approved", value: mine.length, sub: `${completed.length} completed`, icon: IconBook, tone: "bg-sky-50 text-brand-ink" },
@@ -116,7 +123,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
       </div>
 
       <Panel title="Your journey" action={<span className="text-sm font-semibold text-slate-500">{journeyPct}% complete</span>}>
-        <ol className="grid gap-3 sm:grid-cols-4 xl:grid-cols-7">
+        <ol className="grid gap-3 sm:grid-cols-4 xl:grid-cols-8">
           {journey.map((s, i) => {
             const isNext = i === nextStep;
             const inner = (

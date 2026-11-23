@@ -1,3 +1,4 @@
+import { hasPassedOrientation } from "./orientation";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { getSession } from "./session";
@@ -17,6 +18,8 @@ export type CurrentUser = {
   verification: StoredUser["verification"];
   assignedCourses: string[];
   requests: StoredUser["requests"];
+  /** The mandatory orientation quiz is passed; every other exam needs it. */
+  orientationPassed: boolean;
 };
 
 /** Power admins are configured by email in ADMIN_EMAILS (comma-separated). */
@@ -49,6 +52,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     verification: u.verification,
     assignedCourses: u.assignedCourses,
     requests: u.requests,
+    orientationPassed: hasPassedOrientation(u.examAttempts),
   };
 });
 

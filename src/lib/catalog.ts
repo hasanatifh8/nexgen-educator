@@ -7,6 +7,32 @@ export type Category = (typeof CATEGORIES)[number];
 export const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 export type Level = (typeof LEVELS)[number];
 
+/** The subject a course is written for; "all" = useful to teachers of any subject. */
+export const SUBJECTS = {
+  all: "All subjects",
+  science: "Science",
+  maths: "Mathematics",
+  english: "English",
+  social: "Social Science",
+  hindi: "Hindi & Indian languages",
+  computer: "Computer Science",
+} as const;
+export type Subject = keyof typeof SUBJECTS;
+export const isSubject = (v: unknown): v is Subject => typeof v === "string" && Object.prototype.hasOwnProperty.call(SUBJECTS, v);
+
+/** A course's subject: set by an admin, or read from its title and description for courses saved before subjects existed. */
+export function courseSubject(c: { subject?: Subject; title: string; blurb?: string }): Subject {
+  if (c.subject && isSubject(c.subject)) return c.subject;
+  const t = `${c.title} ${c.blurb ?? ""}`.toLowerCase();
+  if (/social (science|studies)|history|geography|civics/.test(t)) return "social";
+  if (/\bscience\b|physics|chemistry|biology/.test(t)) return "science";
+  if (/\bmaths?\b|mathematics/.test(t)) return "maths";
+  if (/\benglish\b/.test(t)) return "english";
+  if (/\bhindi\b|sanskrit|marathi|tamil|telugu|bengali/.test(t)) return "hindi";
+  if (/computer science|coding|programming/.test(t)) return "computer";
+  return "all";
+}
+
 export type ExamQuestion = {
   id: string;
   prompt: string;
@@ -28,6 +54,8 @@ export type Program = {
   price: number;
   description: string;
   exam: Exam;
+  /** The mandatory orientation: no certificate; passing its quiz unlocks every other exam. Hidden from public listings. */
+  orientation?: boolean;
 };
 
 // --- Course content ----------------------------------------------------------
@@ -58,6 +86,8 @@ export type Course = {
   category: Category;
   hours: number;
   level: Level;
+  /** Who the course is for by subject; absent = inferred by courseSubject(). */
+  subject?: Subject;
   blurb: string;
   enrolled?: string;
   programId: string;

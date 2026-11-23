@@ -55,8 +55,8 @@ export const BUILT_FOR_YOU = [
 /** Who the programs are for, so a visitor can recognise themselves. `finder` pre-fills the course finder. */
 export const TEACHER_PERSONAS: { title: string; body: string; finder: FinderAnswers }[] = [
   { title: "Pre-primary & primary teachers", body: "Play-based, joyful teaching for Playgroup to Class 5, in line with NEP 2020.", finder: { role: "primary", goal: "early" } },
-  { title: "Science & subject teachers", body: "Use AI to plan lessons, make worksheets and explain hard topics in Classes 5–10.", finder: { role: "teacher", goal: "ai" } },
-  { title: "English & language teachers", body: "Level reading passages, give feedback faster and build writing skills in Classes 6–12.", finder: { role: "teacher", goal: "ai" } },
+  { title: "Science teachers", body: "Use AI to plan lessons, make worksheets and explain hard topics in Classes 5–10.", finder: { role: "science", goal: "ai" } },
+  { title: "English & language teachers", body: "Level reading passages, give feedback faster and build writing skills in Classes 6–12.", finder: { role: "english", goal: "ai" } },
   { title: "Teachers new to AI", body: "Never used ChatGPT or Gemini? Begin with a free, friendly introduction made for class teachers.", finder: { goal: "ai", level: "new" } },
 ];
 

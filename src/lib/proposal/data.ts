@@ -4,6 +4,7 @@ import type { ProposalProgram, ProposalStats } from "./pdf";
 /** Programs as the proposal shows them: public courses only (disabled ones removed), in catalog order. */
 export function proposalPrograms({ programs, courses }: Catalog): ProposalProgram[] {
   return programs
+    .filter((p) => !p.orientation)
     .map((p) => ({
       id: p.id,
       title: p.title,

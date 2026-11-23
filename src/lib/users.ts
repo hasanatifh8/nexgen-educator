@@ -292,7 +292,8 @@ export async function finishExamAttempt(
   userId: string,
   attemptId: string,
   result: { score: number; total: number; passed: boolean },
-  makeCertificate: () => EarnedCertificate,
+  /** null = no certificate for this exam (the orientation quiz). */
+  makeCertificate: (() => EarnedCertificate) | null,
 ) {
   return withUsersLock(async (users) => {
       const user = users.find((u) => u.id === userId);
@@ -301,7 +302,7 @@ export async function finishExamAttempt(
       if (attempt.submittedAt) return { error: "already-submitted" as const };
       Object.assign(attempt, result, { submittedAt: Date.now() });
       let certificate: EarnedCertificate | undefined;
-      if (result.passed) {
+      if (result.passed && makeCertificate) {
         certificate = user.certificates.find((c) => c.programId === attempt.programId);
         if (!certificate) {
           certificate = makeCertificate();

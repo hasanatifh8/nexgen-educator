@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { DEFAULT_PREMIUM_PRICE, GST_RATE, LEVELS, formatINR, gstOn, priceWithGst, type CourseSummary } from "@/lib/catalog";
+import { DEFAULT_PREMIUM_PRICE, GST_RATE, LEVELS, SUBJECTS, courseSubject, formatINR, gstOn, priceWithGst, type CourseSummary } from "@/lib/catalog";
 import { saveCourseAction, type FormState } from "../actions";
 import { Field, FormError, inputCls } from "../fields";
 
@@ -33,6 +33,12 @@ export default function CourseForm({ course, programs }: { course?: CourseSummar
               {p.title} ({p.category})
             </option>
           ))}
+        </select>
+      </Field>
+
+      <Field id="subject" label="Subject" error={fe.subject} hint="Subject courses are recommended only to teachers of that subject in the course finder. Choose “All subjects” for general courses.">
+        <select id="subject" name="subject" defaultValue={course ? courseSubject(course) : "all"} className={inputCls(!!fe.subject)}>
+          {Object.entries(SUBJECTS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
         </select>
       </Field>
 

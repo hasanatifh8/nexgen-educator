@@ -9,7 +9,8 @@ import { IconBadge, IconCheck, IconLock } from "@/components/Icons";
 import { examEligibility, isCourseComplete } from "@/lib/access";
 import { activeCourses, coursesFor } from "@/lib/catalog";
 import { getCatalog } from "@/lib/catalogStore";
-import { requireLearner } from "@/lib/dal";
+import { requireLearner, requireUser } from "@/lib/dal";
+import { ORIENTATION_COURSE_ID, ORIENTATION_TITLE } from "@/lib/orientation";
 import { getSettings } from "@/lib/settings";
 import CertExam from "./CertExam";
 
@@ -19,30 +20,55 @@ type Params = PageProps<"/certifications/[programId]/exam">["params"];
 
 async function ExamContent({ params }: { params: Params }) {
   const { programId } = await params;
-  const user = await requireLearner(`/certifications/${programId}/exam`);
   const [{ programs, courses }, settings] = await Promise.all([getCatalog(), getSettings()]);
   const program = programs.find((p) => p.id === programId);
   if (!program) notFound();
+  // The orientation quiz is open before the profile is complete; certification exams need the profile.
+  const here = `/certifications/${programId}/exam`;
+  const user = program.orientation ? await requireUser(here) : await requireLearner(here);
   if (!program.exam.questions.length) redirect("/my-learning/courses#programs");
   const eligible = examEligibility(user, program.id, courses);
 
   const cert = user.certificates.find((c) => c.programId === program.id);
 
+  if (program.orientation && user.orientationPassed) {
+    return (
+      <>
+        <PageHeader crumb="Orientation quiz" title={program.title} />
+        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:py-16">
+          <div className="card p-8 text-center sm:p-10">
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-emerald-600"><IconCheck className="h-7 w-7" /></span>
+            <h2 className="mt-5 font-display text-2xl font-bold text-navy-900">Orientation complete</h2>
+            <p className="mt-2 text-slate-600">You’ve passed the orientation quiz. Every certification exam is unlocked for you.</p>
+            <Link href="/my-learning" className="btn-primary mt-6">Go to My Learning</Link>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <PageHeader crumb="Certification Exam" title={program.title}>
+      <PageHeader crumb={program.orientation ? "Orientation quiz" : "Certification Exam"} title={program.title}>
         <p className="mt-4 max-w-2xl text-lg text-slate-300">{program.description}</p>
       </PageHeader>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:py-16">
         {!cert && !eligible.ok ? (
           <div className="card p-8 sm:p-10">
             <span className="grid h-14 w-14 place-items-center rounded-full bg-orange-50 text-accent-strong ring-1 ring-orange-100"><IconLock className="h-7 w-7" /></span>
-            <h2 className="mt-5 font-display text-2xl font-bold text-navy-900">Exam locked</h2>
+            <h2 className="mt-5 font-display text-2xl font-bold text-navy-900">{program.orientation ? "Quiz locked" : "Exam locked"}</h2>
             <p className="mt-2 text-slate-600">
-              {!eligible.ok && eligible.reason === "unverified"
-                ? "You’ve finished the coursework. Certificates are only issued to identity-verified learners, so the exam opens once our team verifies your ID document."
-                : "Finish every course in this program to unlock the certification exam."}
+              {!eligible.ok && eligible.reason === "orientation"
+                ? "You’ve finished the coursework. One step left: complete the mandatory orientation and pass its short quiz — it unlocks every certification exam."
+                : !eligible.ok && eligible.reason === "unverified"
+                  ? "You’ve finished the coursework. Certificates are only issued to identity-verified learners, so the exam opens once our team verifies your ID document."
+                  : program.orientation
+                    ? "Finish every lesson of the orientation to unlock its short quiz."
+                    : "Finish every course in this program to unlock the certification exam."}
             </p>
+            {!eligible.ok && eligible.reason === "orientation" && (
+              <Link href={`/courses/${ORIENTATION_COURSE_ID}`} className="btn-primary mt-5">Start the orientation: {ORIENTATION_TITLE.split(":")[0]}</Link>
+            )}
             <ul className="mt-6 space-y-2">
               {activeCourses(coursesFor(courses, program.id)).map((c) => {
                 const assigned = user.assignedCourses.includes(c.id) || user.isAdmin;
@@ -82,6 +108,7 @@ async function ExamContent({ params }: { params: Params }) {
             questionCount={program.exam.questions.length}
             userName={`${user.firstName} ${user.lastName}`}
             settings={settings}
+            orientation={!!program.orientation}
           />
         )}
       </div>

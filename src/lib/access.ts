@@ -1,4 +1,5 @@
 import { activeCourses, coursesFor, type Course } from "./catalog";
+import { ORIENTATION_COURSE_ID, ORIENTATION_PROGRAM_ID, ORIENTATION_TITLE, hasPassedOrientation } from "./orientation";
 
 /** Access rules: shared by pages, actions and the exam engine. Safe for client import. */
 export type AccessUser = {
@@ -8,10 +9,18 @@ export type AccessUser = {
   progress: Record<string, string[]>;
   /** Admin review of the learner's ID document. Certificates are only issued to verified identities. */
   verification: { status: "pending" | "verified" | "rejected" };
+  /** Whether the mandatory orientation quiz is passed (precomputed for sessions) … */
+  orientationPassed?: boolean;
+  /** … or worked out from the exam attempts. */
+  examAttempts?: { programId: string; passed?: boolean }[];
 };
+
+export const orientationPassed = (user: AccessUser) => user.isAdmin === true || (user.orientationPassed ?? hasPassedOrientation(user.examAttempts));
 
 /** Learners open course material only when their profile is complete and an admin assigned the course. */
 export function canAccessCourse(user: AccessUser, courseId: string) {
+  // The mandatory orientation is open to every signed-in learner, even before the profile is complete.
+  if (courseId === ORIENTATION_COURSE_ID) return true;
   return user.isAdmin === true || (user.profileComplete && user.assignedCourses.includes(courseId));
 }
 
@@ -26,7 +35,7 @@ export function isCourseComplete(user: Pick<AccessUser, "progress">, course: Pic
 
 export type ExamEligibility =
   | { ok: true }
-  | { ok: false; reason: "no-courses" | "not-assigned" | "incomplete" | "unverified"; remaining: { id: string; title: string }[] };
+  | { ok: false; reason: "no-courses" | "not-assigned" | "incomplete" | "orientation" | "unverified"; remaining: { id: string; title: string }[] };
 
 /**
  * A program’s exam unlocks only after every course in it is assigned and finished, and the learner’s
@@ -41,6 +50,9 @@ export function examEligibility(user: AccessUser, programId: string, courses: Co
   if (notAssigned.length) return { ok: false, reason: "not-assigned", remaining: notAssigned.map(({ id, title }) => ({ id, title })) };
   const unfinished = inProgram.filter((c) => !isCourseComplete(user, c));
   if (unfinished.length) return { ok: false, reason: "incomplete", remaining: unfinished.map(({ id, title }) => ({ id, title })) };
+  // The orientation quiz has no certificate, so it needs no ID check; every other exam needs the orientation first.
+  if (programId === ORIENTATION_PROGRAM_ID) return { ok: true };
+  if (!orientationPassed(user)) return { ok: false, reason: "orientation", remaining: [{ id: ORIENTATION_COURSE_ID, title: ORIENTATION_TITLE }] };
   if (user.verification.status !== "verified") return { ok: false, reason: "unverified", remaining: [] };
   return { ok: true };
 }

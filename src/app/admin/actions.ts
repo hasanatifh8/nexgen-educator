@@ -2,7 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
-import { CATEGORIES, LEVELS, todayIST, type Category, type ExamQuestion, type Level } from "@/lib/catalog";
+import { CATEGORIES, LEVELS, isSubject, todayIST, type Category, type ExamQuestion, type Level, type Subject } from "@/lib/catalog";
 import { takeLaunchInterest } from "@/lib/launchInterest";
 import { submitProfile } from "@/lib/profileSubmission";
 import type { ProfileState } from "@/app/onboarding/constants";
@@ -44,12 +44,14 @@ export async function saveProgramAction(_prev: FormState, fd: FormData): Promise
   const title = str(fd, "title");
   const category = str(fd, "category") as Category;
   const level = str(fd, "level") as Level;
+  const subject = str(fd, "subject");
   const description = str(fd, "description");
 
   const e: Record<string, string> = {};
   if (title.length < 3 || title.length > 100) e.title = "Title must be 3–100 characters.";
   if (!CATEGORIES.includes(category)) e.category = "Choose a category.";
   if (!LEVELS.includes(level)) e.level = "Choose a level.";
+  if (!isSubject(subject)) e.subject = "Choose a subject.";
   if (description.length < 10 || description.length > 300) e.description = "Description must be 10–300 characters.";
   if (Object.keys(e).length) return { error: "Please fix the highlighted fields.", fieldErrors: e };
 
@@ -72,6 +74,7 @@ export async function saveCourseAction(_prev: FormState, fd: FormData): Promise<
   const title = str(fd, "title");
   const programId = str(fd, "programId");
   const level = str(fd, "level") as Level;
+  const subject = str(fd, "subject");
   const blurb = str(fd, "blurb");
   const enrolled = str(fd, "enrolled");
   const hours = Number(str(fd, "hours"));
@@ -91,6 +94,7 @@ export async function saveCourseAction(_prev: FormState, fd: FormData): Promise<
   if (!instructorName && instructorTitle) e.instructorName = "Add the instructor’s name.";
   if (!(await getProgram(programId))) e.programId = "Choose a certification program.";
   if (!LEVELS.includes(level)) e.level = "Choose a level.";
+  if (!isSubject(subject)) e.subject = "Choose a subject.";
   if (!Number.isFinite(hours) || hours < 0.5 || hours > 200) e.hours = "Enter a duration from 0.5 to 200 hours.";
   if (str(fd, "pricing") !== "free" && (!Number.isInteger(price) || price < 1 || price > 100000))
     e.price = "Enter a whole-rupee fee from ₹1 to ₹1,00,000 (before GST), or choose Free.";
@@ -102,7 +106,7 @@ export async function saveCourseAction(_prev: FormState, fd: FormData): Promise<
   const launch = availability === "soon" ? {} : availability === "date" ? { on: launchOn } : undefined;
 
   const saved = await upsertCourse({
-    id, title, programId, level, blurb, hours, price, overview, outcomes,
+    id, title, programId, level, subject: subject as Subject, blurb, hours, price, overview, outcomes,
     ...(launch ? { launch } : {}),
     ...(enrolled ? { enrolled } : {}),
     ...(instructorName ? { instructor: { name: instructorName, title: instructorTitle } } : {}),

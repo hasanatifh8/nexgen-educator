@@ -10,6 +10,7 @@ import { formatCertDate } from "@/lib/certificate/design";
 import { fmtDate } from "@/lib/learner";
 import { CATEGORY_ACCENT } from "@/lib/styles";
 import { loadLearner } from "../data";
+import OrientationCard from "../OrientationCard";
 import { PageTitle, Panel, Pill, portalSkeleton } from "../ui";
 
 async function Courses() {
@@ -32,7 +33,7 @@ async function Courses() {
         exam: examEligibility(user, p.id, courses),
       };
     })
-    .filter((x) => x.assigned.length > 0 || x.cert);
+    .filter((x) => !x.p.orientation && (x.assigned.length > 0 || x.cert));
 
   return (
     <>
@@ -42,6 +43,7 @@ async function Courses() {
         subtitle="Courses our team has approved for you, the programs they belong to, and the requests still under review."
         action={<Link href="/courses" className="btn-primary">Request a course</Link>}
       />
+      <div className="mb-6"><OrientationCard user={user} catalog={catalog} /></div>
       <div className="space-y-10">
         <Panel title="Requested courses" action={<Pill tone={requested.length ? "amber" : "slate"}>{requested.length} awaiting approval</Pill>}>
           {requested.length ? (
