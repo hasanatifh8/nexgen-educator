@@ -206,6 +206,25 @@ async function UserDetail({ params, searchParams }: { params: P["params"]; searc
             )}
           </section>
 
+          {!!user.interestedCourses?.length && (
+            <section className="card p-6">
+              <h2 className="font-display text-lg font-semibold text-navy-900">Chosen in the course finder</h2>
+              <p className="mt-1 text-sm text-slate-500">Picked before registering. Assign them below once the profile is verified.</p>
+              <ul className="mt-3 space-y-2">
+                {user.interestedCourses.map((cid) => {
+                  const c = courses.find((x) => x.id === cid);
+                  const state = user.assignedCourses.includes(cid) ? ["Assigned", "bg-emerald-50 text-emerald-700 ring-emerald-200"] : user.requests.some((r) => r.courseId === cid) ? ["Requested", "bg-sky-50 text-sky-700 ring-sky-200"] : ["Not requested yet", "bg-amber-50 text-amber-700 ring-amber-200"];
+                  return (
+                    <li key={cid} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 text-sm">
+                      <span className="min-w-0 font-medium text-navy-900">{c ? c.title : `${cid} (removed)`}{c && <span className="ml-1 text-xs text-slate-500">· {c.price ? formatINR(c.price) : "Free"}</span>}</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${state[1]}`}>{state[0]}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
           {p && (
             <section className="card p-6">
               <h2 className="font-display text-lg font-semibold text-navy-900">Documents</h2>

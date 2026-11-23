@@ -53,6 +53,12 @@ export async function downloadCertificatePdf(d: CertificateData, settings: SiteS
   }
   doc.setCharSpace(0);
 
+  // Barcode of the credential ID (vector, scannable when printed).
+  if (layout.barcode) {
+    doc.setFillColor(15, 42, 74);
+    for (const b of layout.barcode.bars) doc.rect(b.x, layout.barcode.y, b.w, layout.barcode.h, "F");
+  }
+
   // QR code: white tile + vector modules (scans reliably at any zoom or print size).
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(201, 162, 39);

@@ -1,51 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { priceShort, type Category, type CourseOutline, type Level, type PublicProgram } from "@/lib/catalog";
+import { useEffect, useRef, useState } from "react";
+import { priceShort, type CourseOutline } from "@/lib/catalog";
+import { FINDER_GOALS, FINDER_LEVELS, FINDER_ROLES, recommendCourses, type FinderAnswers, type FinderGoal, type FinderLevel, type FinderRole } from "@/lib/courseFinder";
 import { LEVEL_STYLES } from "@/lib/styles";
-import { IconArrowRight, IconCheck, IconClock, IconRefresh, IconSparkles } from "../Icons";
+import EnquiryDialog from "./EnquiryDialog";
+import { IconArrowRight, IconCheck, IconClock, IconRefresh, IconShield, IconSparkles } from "./Icons";
 
-const ROLES = ["Classroom teacher", "Preschool / primary teacher", "School leader", "Instructional coach", "Student teacher"] as const;
-const GOALS: { label: string; category: Category | null; hint: string }[] = [
-  { label: "Use AI in my teaching", category: "AI Tools for Teachers", hint: "Plan faster, differentiate smarter" },
-  { label: "Design better assessments", category: "Assessment Design", hint: "Rubrics, questions, feedback" },
-  { label: "Run a calmer classroom", category: "Classroom Management", hint: "Routines, behavior, inclusion" },
-  { label: "Teach young children (playgroup–Class 5)", category: "Early Years & Primary", hint: "Play, phonics, hands-on maths" },
-  { label: "Not sure yet", category: null, hint: "Show me the best starting points" },
-];
-const LEVELS: { label: string; level: Level }[] = [
-  { label: "I’m new to this", level: "Beginner" },
-  { label: "I know the basics", level: "Intermediate" },
-  { label: "I’m experienced", level: "Advanced" },
-];
-const RANK: Record<Level, number> = { Beginner: 0, Intermediate: 1, Advanced: 2 };
-
-type Answers = { role?: string; goal?: number; level?: Level };
-
-function recommend(courses: CourseOutline[], programs: Record<string, PublicProgram>, a: Required<Answers>) {
-  const goal = GOALS[a.goal];
-  return courses
-    // Only recommend courses people can join today.
-    .filter((c) => !c.launch)
-    .map((c) => {
-      const reasons: string[] = [];
-      let score = 0;
-      if (!goal.category || c.category === goal.category) { score += 4; if (goal.category) reasons.push("Matches your goal"); }
-      const gap = Math.abs(RANK[c.level] - RANK[a.level]);
-      score += gap === 0 ? 3 : gap === 1 ? 1 : -1;
-      if (gap === 0) reasons.push("Right level for you");
-      const free = c.price === 0;
-      if (free) { score += a.role === "Student teacher" || !goal.category ? 1.5 : 0.5; reasons.push("Free"); }
-      if (a.role === "School leader" && c.category === "Assessment Design") score += 1;
-      if (a.role === "Preschool / primary teacher" && c.category === "Early Years & Primary") { score += 2; reasons.push("Made for early-years teachers"); }
-      if (a.role === "Instructional coach" && c.level !== "Beginner") score += 0.5;
-      if (c.lessonCount > 0) score += 0.5;
-      return { c, score, reasons };
-    })
-    .sort((x, y) => y.score - x.score)
-    .slice(0, 3);
-}
+const keys = <T extends string>(o: Record<T, unknown>) => Object.keys(o) as T[];
 
 function Choice({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -56,14 +19,30 @@ function Choice({ selected, onClick, children }: { selected: boolean; onClick: (
   );
 }
 
-export default function CourseFinder({ courses, programs }: { courses: CourseOutline[]; programs: PublicProgram[] }) {
-  const [a, setA] = useState<Answers>({});
-  const byId = useMemo(() => Object.fromEntries(programs.map((p) => [p.id, p])), [programs]);
+type Props = {
+  courses: CourseOutline[];
+  /** Answers pre-filled from the link, e.g. a “Find yourself here” card on the home page. */
+  initial?: FinderAnswers;
+  signedIn?: boolean;
+};
+
+export default function CourseFinder({ courses, initial = {}, signedIn = false }: Props) {
+  const [a, setA] = useState<FinderAnswers>(initial);
   const done = a.role !== undefined && a.goal !== undefined && a.level !== undefined;
-  const picks = done ? recommend(courses, byId, a as Required<Answers>) : [];
+  const picks = done ? recommendCourses(courses, a as Required<FinderAnswers>) : [];
+  const registerHref = `/register?courses=${picks.map((p) => p.c.id).join(",")}`;
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const pickKey = picks.map((p) => p.c.id).join(",");
+
+  // On phones the results sit below the questions: bring them into view once all three are answered.
+  useEffect(() => {
+    const el = resultsRef.current;
+    if (!pickKey || !el || el.getBoundingClientRect().top < window.innerHeight * 0.6) return;
+    el.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }, [pickKey]);
 
   return (
-    <section id="finder" className="relative overflow-hidden bg-navy-900 py-20 text-white lg:py-28">
+    <section id="finder" className="relative overflow-hidden bg-navy-900 py-14 text-white lg:py-20">
       <div className="bg-grid absolute inset-0" aria-hidden="true" />
       <div className="absolute -bottom-40 -left-24 h-96 w-96 rounded-full bg-brand-teal/20 blur-3xl" aria-hidden="true" />
       <div className="relative mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:px-8">
@@ -71,23 +50,23 @@ export default function CourseFinder({ courses, programs }: { courses: CourseOut
           <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold tracking-wide text-sky-200 uppercase">
             <IconSparkles className="h-4 w-4 text-accent" /> 30-second course finder
           </span>
-          <h2 className="mt-5 font-display text-3xl font-bold tracking-tight sm:text-4xl">Which course is right for you?</h2>
+          <h1 className="mt-5 font-display text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">Which course is right for you?</h1>
           <p className="mt-4 text-lg text-slate-300">Answer three quick questions and we’ll match you with the best place to start.</p>
 
           <div className="mt-8 space-y-6">
             <div>
               <p className="text-sm font-semibold text-slate-200">1. I am a…</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {ROLES.map((r) => <Choice key={r} selected={a.role === r} onClick={() => setA((s) => ({ ...s, role: r }))}>{r}</Choice>)}
+                {keys(FINDER_ROLES).map((r: FinderRole) => <Choice key={r} selected={a.role === r} onClick={() => setA((s) => ({ ...s, role: r }))}>{FINDER_ROLES[r]}</Choice>)}
               </div>
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-200">2. I want to…</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {GOALS.map((g, i) => (
-                  <Choice key={g.label} selected={a.goal === i} onClick={() => setA((s) => ({ ...s, goal: i }))}>
-                    <span className="block font-semibold">{g.label}</span>
-                    <span className="text-xs text-slate-400">{g.hint}</span>
+                {keys(FINDER_GOALS).map((g: FinderGoal) => (
+                  <Choice key={g} selected={a.goal === g} onClick={() => setA((s) => ({ ...s, goal: g }))}>
+                    <span className="block font-semibold">{FINDER_GOALS[g].label}</span>
+                    <span className="text-xs text-slate-400">{FINDER_GOALS[g].hint}</span>
                   </Choice>
                 ))}
               </div>
@@ -95,13 +74,13 @@ export default function CourseFinder({ courses, programs }: { courses: CourseOut
             <div>
               <p className="text-sm font-semibold text-slate-200">3. My experience with it…</p>
               <div className="mt-2 grid grid-cols-3 gap-2">
-                {LEVELS.map((l) => <Choice key={l.level} selected={a.level === l.level} onClick={() => setA((s) => ({ ...s, level: l.level }))}>{l.label}</Choice>)}
+                {keys(FINDER_LEVELS).map((l: FinderLevel) => <Choice key={l} selected={a.level === l} onClick={() => setA((s) => ({ ...s, level: l }))}>{FINDER_LEVELS[l].label}</Choice>)}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="lg:pt-10">
+        <div ref={resultsRef} className="scroll-mt-24 lg:pt-10">
           {!done ? (
             <div className="grid h-full min-h-80 place-items-center rounded-2xl border border-dashed border-white/20 p-8 text-center">
               <div>
@@ -143,7 +122,36 @@ export default function CourseFinder({ courses, programs }: { courses: CourseOut
                   </Link>
                 );
               })}
-              <Link href="/register" className="btn-primary w-full py-3.5 text-base">Register free to enroll</Link>
+
+              {/* Next step, right under the picks: enroll in exactly these courses */}
+              <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/5 p-5 ring-1 ring-brand-teal/20 backdrop-blur">
+                {signedIn ? (
+                  <>
+                    <p className="font-display text-lg font-semibold">Ready to start?</p>
+                    <p className="mt-1 text-sm text-slate-300">Open your best match and tap <span className="font-semibold text-white">Request access</span> or <span className="font-semibold text-white">Enroll now</span>.</p>
+                    <Link href={`/courses/${picks[0]?.c.id ?? ""}`} className="btn-primary mt-4 w-full py-3.5 text-base">
+                      Open my best match <IconArrowRight className="h-4 w-4" />
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-display text-lg font-semibold">Love these picks? Enroll in {picks.length === 1 ? "it" : `all ${picks.length}`} today.</p>
+                    <p className="mt-1 text-sm text-slate-300">Create your free account — we’ll save these courses to your profile so you can start right away.</p>
+                    <Link href={registerHref} className="btn-primary mt-4 w-full py-3.5 text-base">
+                      Register free &amp; enroll <IconArrowRight className="h-4 w-4" />
+                    </Link>
+                    <EnquiryDialog
+                      courses={picks.map((p) => ({ id: p.c.id, title: p.c.title }))}
+                      source="course-finder"
+                      label="Prefer to talk first? Request a call back"
+                      className="btn-ghost-dark mt-2 w-full py-3"
+                    />
+                    <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+                      <IconShield className="h-3.5 w-3.5" /> Free registration · nothing is paid on the website
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>

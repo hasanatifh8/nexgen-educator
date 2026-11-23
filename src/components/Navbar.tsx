@@ -5,9 +5,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
 import Logo from "./Logo";
-import { IconLogout, IconMenu, IconShield, IconX } from "./Icons";
+import { IconLogout, IconMenu, IconShield, IconSparkles, IconX } from "./Icons";
+
+const FINDER = "/find-my-course";
 
 const links = [
+  { label: "Find my course", href: FINDER },
   { label: "Courses", href: "/courses" },
   { label: "How it works", href: "/#how-it-works" },
   { label: "Practice Tests", href: "/#practice-tests" },
@@ -57,15 +60,25 @@ export function NavbarView({ user, loading = false, pathname }: NavbarProps & { 
         <ul className="hidden items-center gap-1 lg:flex">
           {menu.map((l) => (
             <li key={l.href}>
-              <Link
-                href={l.href}
-                aria-current={pathname === l.href ? "page" : undefined}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-50 hover:text-navy-900 ${
-                  pathname === l.href ? "bg-sky-50 text-brand-ink" : "text-slate-600"
-                }`}
-              >
-                {l.label}
-              </Link>
+              {l.href === FINDER ? (
+                <Link
+                  href={l.href}
+                  aria-current={pathname === l.href ? "page" : undefined}
+                  className="mr-1 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-50 to-amber-50 px-3.5 py-2 text-sm font-semibold text-accent-strong ring-1 ring-orange-200 transition-all hover:ring-orange-300 hover:shadow-sm"
+                >
+                  <IconSparkles className="h-4 w-4" /> {l.label}
+                </Link>
+              ) : (
+                <Link
+                  href={l.href}
+                  aria-current={pathname === l.href ? "page" : undefined}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-50 hover:text-navy-900 ${
+                    pathname === l.href ? "bg-sky-50 text-brand-ink" : "text-slate-600"
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              )}
             </li>
           ))}
         </ul>
@@ -135,10 +148,12 @@ export function NavbarView({ user, loading = false, pathname }: NavbarProps & { 
                   onClick={() => setOpen(false)}
                   aria-current={pathname === l.href ? "page" : undefined}
                   className={`flex items-center gap-2 rounded-md px-3 py-3 text-base font-medium hover:bg-slate-50 ${
-                    pathname === l.href ? "text-brand-ink" : "text-slate-700"
+                    l.href === FINDER ? "font-semibold text-accent-strong" : pathname === l.href ? "text-brand-ink" : "text-slate-700"
                   }`}
                 >
+                  {l.href === FINDER && <IconSparkles className="h-5 w-5" />}
                   {l.label}
+                  {l.href === FINDER && <span className="ml-auto rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-accent-strong ring-1 ring-orange-200">30 sec</span>}
                 </Link>
               </li>
             ))}

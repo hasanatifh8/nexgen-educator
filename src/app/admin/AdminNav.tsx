@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconBadge, IconBook, IconFile, IconPencil, IconPhone, IconShield, IconSignal, IconTag, IconUsers } from "@/components/Icons";
+import { IconBadge, IconBook, IconBuilding, IconFile, IconPencil, IconPhone, IconShield, IconSignal, IconTag, IconUsers } from "@/components/Icons";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: IconSignal },
   { href: "/admin/enquiries", label: "Enquiries", icon: IconPhone },
+  { href: "/admin/proposals", label: "School proposals", icon: IconBuilding },
   { href: "/admin/users", label: "Learners", icon: IconUsers },
   { href: "/admin/programs", label: "Programs & Exams", icon: IconBadge },
   { href: "/admin/courses", label: "Courses", icon: IconBook },
@@ -18,7 +19,7 @@ const items = [
 export default function AdminNav() {
   const pathname = usePathname();
   return (
-    <aside className="lg:sticky lg:top-24 lg:self-start">
+    <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
       <p className="flex items-center gap-2 px-3 text-xs font-bold tracking-[0.15em] text-accent-strong uppercase">
         <IconShield className="h-4 w-4" /> Power Admin
       </p>

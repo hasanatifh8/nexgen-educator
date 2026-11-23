@@ -6,14 +6,18 @@ import { CALL_TIMES } from "@/lib/enquiryOptions";
 import { IconCheck, IconPhone, IconX } from "./Icons";
 import { LIMITS, isEmail, nameError } from "@/lib/validation";
 
-type Props = { courseId: string; courseTitle: string; source?: "home" | "course-page"; className?: string; label?: string };
+type EnquiryCourse = { id: string; title: string };
+/** One course, or several (the course finder's recommendations), all in one enquiry. */
+type Props = { courses: EnquiryCourse[]; source?: "home" | "course-page" | "course-finder"; className?: string; label?: string };
+
+const titleOf = (courses: EnquiryCourse[]) => (courses.length === 1 ? courses[0].title : `${courses.length} recommended courses`);
 
 const inputCls = (bad?: boolean) =>
   `mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-navy-900 outline-none transition placeholder:text-slate-400 focus:ring-4 ${
     bad ? "border-red-400 focus:ring-red-100" : "border-slate-300 focus:border-brand focus:ring-sky-100"
   }`;
 
-function EnquiryForm({ courseId, courseTitle, source, onClose }: Omit<Props, "className" | "label"> & { onClose: () => void }) {
+function EnquiryForm({ courses, source, onClose }: Omit<Props, "className" | "label"> & { onClose: () => void }) {
   const [state, dispatch, pending] = useActionState<EnquiryState, FormData>(submitEnquiry, {});
   const [v, setV] = useState({ name: "", phone: "", email: "", callTime: CALL_TIMES[0] as string, message: "", consent: true, website: "" });
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
@@ -38,7 +42,8 @@ function EnquiryForm({ courseId, courseTitle, source, onClose }: Omit<Props, "cl
     setErrors(e);
     if (Object.keys(e).length) return;
     const fd = new FormData();
-    Object.entries({ ...v, consent: v.consent ? "on" : "", courseId, source: source ?? "home" }).forEach(([k, val]) => fd.set(k, String(val)));
+    Object.entries({ ...v, consent: v.consent ? "on" : "", source: source ?? "home" }).forEach(([k, val]) => fd.set(k, String(val)));
+    for (const c of courses) fd.append("courseId", c.id);
     startTransition(() => dispatch(fd));
   };
 
@@ -48,7 +53,7 @@ function EnquiryForm({ courseId, courseTitle, source, onClose }: Omit<Props, "cl
         <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-600"><IconCheck className="h-8 w-8" /></span>
         <h2 className="mt-5 font-display text-2xl font-bold text-navy-900">Thank you{state.firstName ? `, ${state.firstName}` : ""}!</h2>
         <p className="mt-2 text-slate-600">
-          We’ve received your enquiry about <span className="font-semibold text-navy-900">{courseTitle}</span>.
+          We’ve received your enquiry about <span className="font-semibold text-navy-900">{titleOf(courses)}</span>.
         </p>
         <p className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-900 ring-1 ring-sky-100">
           <IconPhone className="h-4 w-4" /> Our representative will call you soon.
@@ -113,7 +118,8 @@ function EnquiryForm({ courseId, courseTitle, source, onClose }: Omit<Props, "cl
 }
 
 /** "Enquire" button that opens a short call-back form for a course. */
-export default function EnquiryDialog({ courseId, courseTitle, source = "home", className = "btn-secondary w-full", label = "Enquire now" }: Props) {
+export default function EnquiryDialog({ courses, source = "home", className = "btn-secondary w-full", label = "Enquire now" }: Props) {
+  const dialogId = courses.map((c) => c.id).join("-");
   const ref = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState(0);
@@ -134,15 +140,20 @@ export default function EnquiryDialog({ courseId, courseTitle, source = "home", 
         ref={ref}
         onClose={() => setOpen(false)}
         onClick={(e) => e.target === ref.current && close()}
-        aria-labelledby={`enq-title-${courseId}`}
+        aria-labelledby={`enq-title-${dialogId}`}
         className="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl p-0 shadow-2xl backdrop:bg-navy-950/60 backdrop:backdrop-blur-sm"
       >
         {open && (
           <div className="max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-4 bg-navy-900 px-6 py-5 text-white sm:px-8">
               <div>
-                <p className="text-xs font-semibold tracking-wide text-sky-300 uppercase">Course enquiry</p>
-                <h2 id={`enq-title-${courseId}`} className="mt-1 font-display text-lg leading-snug font-bold">{courseTitle}</h2>
+                <p className="text-xs font-semibold tracking-wide text-sky-300 uppercase">{courses.length > 1 ? "Your recommended courses" : "Course enquiry"}</p>
+                <h2 id={`enq-title-${dialogId}`} className="mt-1 font-display text-lg leading-snug font-bold">{titleOf(courses)}</h2>
+                {courses.length > 1 && (
+                  <ul className="mt-2 space-y-1 text-sm text-slate-200">
+                    {courses.map((c) => <li key={c.id} className="flex gap-2"><IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-teal" /> {c.title}</li>)}
+                  </ul>
+                )}
                 <p className="mt-1 text-sm text-slate-300">Leave your details and we’ll call you back.</p>
               </div>
               <button type="button" onClick={close} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="Close">
@@ -150,7 +161,7 @@ export default function EnquiryDialog({ courseId, courseTitle, source = "home", 
               </button>
             </div>
             <div className="pt-4">
-              <EnquiryForm key={session} courseId={courseId} courseTitle={courseTitle} source={source} onClose={close} />
+              <EnquiryForm key={session} courses={courses} source={source} onClose={close} />
             </div>
           </div>
         )}

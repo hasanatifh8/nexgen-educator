@@ -17,8 +17,9 @@ export async function submitEnquiry(_prev: EnquiryState, fd: FormData): Promise<
   const email = str(fd, "email", 255);
   const callTime = str(fd, "callTime", 40);
   const message = str(fd, "message", 501);
-  const courseId = str(fd, "courseId", 80);
-  const source = str(fd, "source", 20) === "course-page" ? "course-page" : "home";
+  const courseIds = [...new Set(fd.getAll("courseId").map((v) => String(v).trim().slice(0, 80)))].filter(Boolean).slice(0, 3);
+  const rawSource = str(fd, "source", 20);
+  const source = rawSource === "course-page" || rawSource === "course-finder" ? rawSource : "home";
 
   const e: Record<string, string> = {};
   const nameErr = nameError(name, "name", { min: 2, max: LIMITS.fullName });
@@ -28,8 +29,10 @@ export async function submitEnquiry(_prev: EnquiryState, fd: FormData): Promise<
   if (!CALL_TIMES.includes(callTime as (typeof CALL_TIMES)[number])) e.callTime = "Choose a time.";
   if (message.length > 500) e.message = "Keep your message under 500 characters.";
   if (fd.get("consent") !== "on") e.consent = "Please allow us to call you.";
-  const course = await getCourse(courseId);
-  if (!course || course.disabled) return { error: "This course is no longer available." };
+  const found = await Promise.all(courseIds.map((id) => getCourse(id)));
+  const courses = found.filter((c) => c && !c.disabled) as NonNullable<(typeof found)[number]>[];
+  if (!courses.length) return { error: "This course is no longer available." };
+  const [course] = courses;
   if (Object.keys(e).length) return { error: "Please check the highlighted fields.", fieldErrors: e };
 
   if ((await recentFromPhone(phone)) >= 3) {
@@ -42,6 +45,7 @@ export async function submitEnquiry(_prev: EnquiryState, fd: FormData): Promise<
     ...(email ? { email } : {}),
     courseId: course.id,
     courseTitle: course.title,
+    ...(courses.length > 1 ? { courses: courses.map((c) => ({ id: c.id, title: c.title })) } : {}),
     callTime,
     ...(message ? { message } : {}),
     source,

@@ -15,9 +15,11 @@ export type Enquiry = {
   email?: string;
   courseId: string;
   courseTitle: string;
+  /** Every course in the enquiry when it covers several (e.g. the course finder's picks); the first is courseId. */
+  courses?: { id: string; title: string }[];
   callTime: string;
   message?: string;
-  /** Where the enquiry was made, e.g. "home" or "course-page". */
+  /** Where the enquiry was made: "home", "course-page" or "course-finder". */
   source: string;
   createdAt: string;
   status: EnquiryStatus;

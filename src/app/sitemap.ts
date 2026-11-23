@@ -11,6 +11,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     page("/", 1, "weekly"),
     page("/courses", 0.9, "weekly"),
+    page("/find-my-course", 0.85, "monthly"),
+    page("/free-ai-learning", 0.7, "monthly"),
     ...courses.map((c) => page(`/courses/${c.id}`, c.launch ? 0.6 : 0.8, "weekly")),
     page("/about", 0.6, "monthly"),
     page("/verify", 0.5, "yearly"),

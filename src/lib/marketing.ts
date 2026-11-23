@@ -1,4 +1,5 @@
 import { EXAM_ATTEMPT_POLICY } from "./access";
+import type { FinderAnswers } from "./courseFinder";
 
 /**
  * Career-outcome copy for marketing pages, kept in one place so it can be edited without touching layout.
@@ -51,13 +52,13 @@ export const BUILT_FOR_YOU = [
   { title: "You can try again", body: `Didn’t pass the exam the first time? Revise the lessons and try again. You get up to ${EXAM_ATTEMPT_POLICY.maxAttempts} attempts a day.` },
 ] as const;
 
-/** Who the programs are for, so a visitor can recognise themselves. */
-export const TEACHER_PERSONAS = [
-  { title: "Pre-primary & primary teachers", body: "Play-based, joyful teaching for Playgroup to Class 5, in line with NEP 2020." },
-  { title: "Science & subject teachers", body: "Use AI to plan lessons, make worksheets and explain hard topics in Classes 5–10." },
-  { title: "English & language teachers", body: "Level reading passages, give feedback faster and build writing skills in Classes 6–12." },
-  { title: "Teachers new to AI", body: "Never used ChatGPT or Gemini? Begin with a free, friendly introduction made for class teachers." },
-] as const;
+/** Who the programs are for, so a visitor can recognise themselves. `finder` pre-fills the course finder. */
+export const TEACHER_PERSONAS: { title: string; body: string; finder: FinderAnswers }[] = [
+  { title: "Pre-primary & primary teachers", body: "Play-based, joyful teaching for Playgroup to Class 5, in line with NEP 2020.", finder: { role: "primary", goal: "early" } },
+  { title: "Science & subject teachers", body: "Use AI to plan lessons, make worksheets and explain hard topics in Classes 5–10.", finder: { role: "teacher", goal: "ai" } },
+  { title: "English & language teachers", body: "Level reading passages, give feedback faster and build writing skills in Classes 6–12.", finder: { role: "teacher", goal: "ai" } },
+  { title: "Teachers new to AI", body: "Never used ChatGPT or Gemini? Begin with a free, friendly introduction made for class teachers.", finder: { goal: "ai", level: "new" } },
+];
 
 /** What a hiring committee can actually confirm from one of our credentials — all true of the product today. */
 export const HIRING_SIGNALS = [

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { welcomeEmail } from "@/lib/emails";
 import { emailBrand, sendMail } from "@/lib/mailer";
 import { safeNextPath } from "@/lib/sessionToken";
+import { getPublicCatalog } from "@/lib/catalogStore";
+import { MAX_PICKS } from "@/lib/courseFinder";
 import { createUser } from "@/lib/users";
 import { readRegisterForm, validateRegistration, type RegisterState, type WorkStatus } from "./validation";
 
@@ -25,6 +27,11 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
     return { status: "error", message: "Please fix the highlighted fields.", errors, values };
   }
 
+  // Courses picked in the course finder: keep only ones on offer today.
+  const wanted = [...new Set(formData.getAll("interest").map(String))].slice(0, MAX_PICKS);
+  const { courses } = wanted.length ? await getPublicCatalog() : { courses: [] };
+  const interestedCourses = wanted.filter((id) => courses.some((c) => c.id === id && !c.launch));
+
   const user = await createUser({
     firstName: fields.firstName,
     lastName: fields.lastName,
@@ -34,6 +41,7 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
     institution: fields.institution,
     newsletter: fields.newsletter,
     password: fields.password,
+    ...(interestedCourses.length ? { interestedCourses } : {}),
   });
 
   if (!user) {
@@ -49,6 +57,7 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
   if (brand) await sendMail({ to: user.email, ...welcomeEmail(user.firstName, brand) });
 
   // Confirm the account, then ask the learner to log in; login routes them to profile completion.
-  const next = safeNextPath(formData.get("next"));
+  // With picked courses, land on My Learning (after profile completion), where they are waiting.
+  const next = safeNextPath(formData.get("next")) ?? (interestedCourses.length ? "/my-learning" : null);
   redirect(`/login?registered=1${next ? `&next=${encodeURIComponent(next)}` : ""}`);
 }

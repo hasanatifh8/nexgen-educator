@@ -159,6 +159,9 @@ export function fitSize(text: string, maxPt: number, minPt: number, maxWidth: nu
 }
 
 export const QR_BOX = { x: 238, y: 139, size: 30 };
+/** Where the Code 128 barcode of the credential ID sits (the issuer block, bottom left). No handwritten signatures. */
+export const BARCODE_BOX = { x: 32, y: 143, w: 60, h: 13 };
+export type Barcode = { bars: { x: number; w: number }[]; y: number; h: number };
 
 export function certificateLayout(d: CertificateData, s: SiteSettings) {
   const { w } = PAGE;
@@ -177,13 +180,13 @@ export function certificateLayout(d: CertificateData, s: SiteSettings) {
     { text: "for successfully completing the certification program", x: cx, y: 104, size: 11, font: "sans", style: "normal", color: C.ink, align: "center" },
     { text: d.title, x: cx, y: 115, size: fitSize(d.title, 19, 12, 220, "sans"), font: "sans", style: "bold", color: C.sky, align: "center" },
     { text: d.total ? `Score ${d.score}/${d.total} (${pct}%)   ·   Issued ${d.issuedOn}` : `Issued ${d.issuedOn}`, x: cx, y: 125, size: 10, font: "sans", style: "normal", color: C.ink, align: "center" },
-    // Signatures
-    { text: s.signatoryName, x: 62, y: 158, size: 17, font: "serif", style: "italic", color: C.navy, align: "center" },
+    // Issuer block: a scannable barcode of the credential ID instead of a handwritten signature
+    { text: d.credentialId, x: 62, y: 161.5, size: 7, font: "sans", style: "bold", color: C.navy, align: "center", spacing: 0.9 },
     { text: s.signatoryName, x: 62, y: 168, size: 9, font: "sans", style: "bold", color: C.navy, align: "center" },
     { text: s.signatoryTitle, x: 62, y: 172.5, size: 8, font: "sans", style: "normal", color: C.muted, align: "center" },
     ...(two
       ? ([
-          { text: s.secondSignatoryName, x: 198, y: 158, size: 17, font: "serif", style: "italic", color: C.navy, align: "center" },
+          { text: "AUTHORISED BY", x: 198, y: 161.5, size: 6.5, font: "sans", style: "bold", color: C.muted, align: "center", spacing: 0.6 },
           { text: s.secondSignatoryName, x: 198, y: 168, size: 9, font: "sans", style: "bold", color: C.navy, align: "center" },
           { text: s.secondSignatoryTitle, x: 198, y: 172.5, size: 8, font: "sans", style: "normal", color: C.muted, align: "center" },
         ] as TextItem[])
@@ -194,11 +197,47 @@ export function certificateLayout(d: CertificateData, s: SiteSettings) {
   ];
   const lines: Line[] = [
     { x1: cx - 60, x2: cx + 60, y: 94, color: C.gold, width: 0.35 },
-    { x1: 32, x2: 92, y: 162.5, color: C.ink, width: 0.25 },
-    ...(two ? [{ x1: 168, x2: 228, y: 162.5, color: C.ink, width: 0.25 }] : []),
+    ...(two ? [{ x1: 178, x2: 218, y: 164, color: C.gold, width: 0.3 }] : []),
   ];
   const url = s.siteUrl ? verifyUrl(s.siteUrl, d.credentialId) : "";
-  return { text, lines, url, urlLabel: url.replace(/^https?:\/\//, ""), sample: !!d.sample };
+  return { text, lines, url, urlLabel: url.replace(/^https?:\/\//, ""), sample: !!d.sample, barcode: barcodeLayout(d.credentialId) };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Barcode (Code 128, set B) — encodes the credential ID; any standard scanner or phone app reads it.
+// ---------------------------------------------------------------------------------------------
+
+/** Bar/space widths for Code 128 symbols 0–105; 106 is the stop pattern. */
+const CODE128 = "212222 222122 222221 121223 121322 131222 122213 122312 132212 221213 221312 231212 112232 122132 122231 113222 123122 123221 223211 221132 221231 213212 223112 312131 311222 321122 321221 312212 322112 322211 212123 212321 232121 111323 131123 131321 112313 132113 132311 211313 231113 231311 112133 112331 132131 113123 113321 133121 313121 211331 231131 213113 213311 213131 311123 311321 331121 312113 312311 332111 314111 221411 431111 111224 111422 121124 121421 141122 141221 112214 112412 122114 122411 142112 142211 241211 221114 413111 241112 134111 111242 121142 121241 114212 124112 124211 411212 421112 421211 212141 214121 412121 111143 111341 131141 114113 114311 411113 411311 113141 114131 311141 411131 211412 211214 211232 2331112".split(" ");
+
+/** Module widths (bar, space, bar, …) for `text` in Code 128 set B, with start, checksum and stop. */
+export function code128(text: string): number[] {
+  const values = [...text].map((ch) => {
+    const v = ch.charCodeAt(0) - 32;
+    if (v < 0 || v > 94) throw new Error(`Code 128B cannot encode “${ch}”`);
+    return v;
+  });
+  const check = (104 + values.reduce((sum, v, i) => sum + v * (i + 1), 0)) % 103;
+  return [104, ...values, check, 106].flatMap((code) => [...CODE128[code]].map(Number));
+}
+
+/** The credential ID's barcode as bars in millimetres, centred in BARCODE_BOX with a quiet zone. */
+export function barcodeLayout(text: string): Barcode | null {
+  let widths: number[];
+  try {
+    widths = code128(text);
+  } catch {
+    return null;
+  }
+  const modules = widths.reduce((a, b) => a + b, 0);
+  const unit = Math.min(0.33, BARCODE_BOX.w / (modules + 20)); // 10-module quiet zone each side
+  let x = BARCODE_BOX.x + (BARCODE_BOX.w - modules * unit) / 2;
+  const bars: { x: number; w: number }[] = [];
+  widths.forEach((w, i) => {
+    if (i % 2 === 0) bars.push({ x: f(x), w: f(w * unit) });
+    x += w * unit;
+  });
+  return { bars, y: BARCODE_BOX.y, h: BARCODE_BOX.h };
 }
 
 // ---------------------------------------------------------------------------------------------

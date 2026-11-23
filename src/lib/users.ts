@@ -38,6 +38,8 @@ export type StoredUser = {
   assignedCourses: string[];
   /** Courses the learner asked an admin to assign. */
   requests: CourseRequest[];
+  /** Courses picked in the course finder before registering — shown on My Learning and to admins. */
+  interestedCourses?: string[];
   /** Every certification-exam attempt; each attempt can be submitted once. */
   examAttempts: ExamAttempt[];
   /** courseId → payment recorded by an admin (there is no online checkout yet). Older records are keyed by programId. */

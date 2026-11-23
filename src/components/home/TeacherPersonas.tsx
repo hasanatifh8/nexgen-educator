@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { finderHref } from "@/lib/courseFinder";
 import { TEACHER_PERSONAS } from "@/lib/marketing";
 import { IconArrowRight, IconHome, IconLightbulb, IconPencil, IconSparkles } from "../Icons";
 
@@ -19,7 +21,7 @@ export default function TeacherPersonas() {
             const Icon = icons[i % icons.length];
             return (
               <li key={p.title}>
-                <a href="#finder" className="card card-hover group flex h-full flex-col p-6">
+                <Link href={finderHref(p.finder)} className="card card-hover group flex h-full flex-col p-6">
                   <span className="grid h-11 w-11 place-items-center rounded-xl bg-orange-50 text-accent-strong ring-1 ring-orange-100">
                     <Icon className="h-5 w-5" />
                   </span>
@@ -28,7 +30,7 @@ export default function TeacherPersonas() {
                   <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-ink group-hover:gap-2.5">
                     Find my course <IconArrowRight className="h-4 w-4 transition-all" />
                   </span>
-                </a>
+                </Link>
               </li>
             );
           })}

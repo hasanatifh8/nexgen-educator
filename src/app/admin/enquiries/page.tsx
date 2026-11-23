@@ -30,7 +30,7 @@ async function Enquiries({ searchParams }: { searchParams: PageProps<"/admin/enq
   const shown = all
     .filter((e) => status === "all" || e.status === status)
     .filter((e) => !course || e.courseId === course)
-    .filter((e) => !q || `${e.name} ${e.phone} ${e.email ?? ""} ${e.courseTitle} ${e.message ?? ""}`.toLowerCase().includes(q));
+    .filter((e) => !q || `${e.name} ${e.phone} ${e.email ?? ""} ${(e.courses ?? []).map((c) => c.title).join(" ") || e.courseTitle} ${e.message ?? ""}`.toLowerCase().includes(q));
   const qs = (patch: Record<string, string>) => {
     const p = new URLSearchParams({ status, ...(q ? { q } : {}), ...(course ? { course } : {}), ...patch });
     return `/admin/enquiries?${p}`;
@@ -83,11 +83,16 @@ async function Enquiries({ searchParams }: { searchParams: PageProps<"/admin/enq
                   <a href={`https://wa.me/91${e.phone}`} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-emerald-700 hover:underline">WhatsApp</a>
                   {e.email && <a href={`mailto:${e.email}`} className="text-slate-600 hover:underline">{e.email}</a>}
                 </div>
-                <p className="mt-3 text-sm text-slate-700">
-                  <span className="text-slate-500">Course:</span>{" "}
-                  <Link href={`/courses/${e.courseId}`} className="font-semibold text-navy-900 hover:text-brand-ink">{e.courseTitle}</Link>
-                </p>
-                <p className="text-sm text-slate-700"><span className="text-slate-500">Best time:</span> {e.callTime} · <span className="text-slate-500">via</span> {e.source === "course-page" ? "course page" : "home page"}</p>
+                <div className="mt-3 text-sm text-slate-700">
+                  <span className="text-slate-500">{e.courses && e.courses.length > 1 ? "Courses:" : "Course:"}</span>{" "}
+                  {(e.courses ?? [{ id: e.courseId, title: e.courseTitle }]).map((c, i) => (
+                    <span key={c.id}>
+                      {i > 0 && <span className="text-slate-400"> · </span>}
+                      <Link href={`/courses/${c.id}`} className="font-semibold text-navy-900 hover:text-brand-ink">{c.title}</Link>
+                    </span>
+                  ))}
+                </div>
+                <p className="text-sm text-slate-700"><span className="text-slate-500">Best time:</span> {e.callTime} · <span className="text-slate-500">via</span> {e.source === "course-page" ? "course page" : e.source === "course-finder" ? "course finder" : "home page"}</p>
                 {e.message && <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-100">“{e.message}”</p>}
               </div>
 

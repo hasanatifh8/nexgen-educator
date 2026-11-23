@@ -51,18 +51,21 @@ export default function SettingsForm({ initial, envFallback }: { initial: SiteSe
         </section>
 
         <section className="card space-y-5 p-6">
-          <h2 className="font-display text-lg font-semibold text-navy-900">Certificate signatures</h2>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-navy-900">Certificate issuer</h2>
+            <p className="mt-1 text-sm text-slate-500">Printed as name and title only — no handwritten signature. A barcode of the credential ID sits above the first name.</p>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="signatoryName" label="Signatory name" error={fe.signatoryName}>
+            <Field id="signatoryName" label="Issuer name" error={fe.signatoryName}>
               <input id="signatoryName" value={v.signatoryName} onChange={set("signatoryName")} className={inputCls(!!fe.signatoryName)} />
             </Field>
-            <Field id="signatoryTitle" label="Signatory title" error={fe.signatoryTitle}>
+            <Field id="signatoryTitle" label="Issuer title" error={fe.signatoryTitle}>
               <input id="signatoryTitle" value={v.signatoryTitle} onChange={set("signatoryTitle")} className={inputCls(!!fe.signatoryTitle)} />
             </Field>
-            <Field id="secondSignatoryName" label={<>Second signatory <span className="font-normal text-slate-400">(optional)</span></>} error={fe.secondSignatoryName}>
+            <Field id="secondSignatoryName" label={<>Second issuer <span className="font-normal text-slate-400">(optional)</span></>} error={fe.secondSignatoryName}>
               <input id="secondSignatoryName" value={v.secondSignatoryName} onChange={set("secondSignatoryName")} className={inputCls(!!fe.secondSignatoryName)} />
             </Field>
-            <Field id="secondSignatoryTitle" label="Second signatory title" error={fe.secondSignatoryTitle}>
+            <Field id="secondSignatoryTitle" label="Second issuer title" error={fe.secondSignatoryTitle}>
               <input id="secondSignatoryTitle" value={v.secondSignatoryTitle} disabled={!v.secondSignatoryName} onChange={set("secondSignatoryTitle")} className={`${inputCls(!!fe.secondSignatoryTitle)} disabled:bg-slate-50`} />
             </Field>
           </div>

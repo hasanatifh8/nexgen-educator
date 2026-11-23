@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { courseProgress } from "@/components/learn/progress";
 import { IconArrowRight, IconBadge, IconBook, IconCheck, IconClock, IconFile, IconPlay, IconTimer, IconWallet } from "@/components/Icons";
 import { canAccessCourse, examEligibility, isCourseComplete } from "@/lib/access";
-import { formatINR } from "@/lib/catalog";
+import { formatINR, priceShort } from "@/lib/catalog";
 import { paymentRows, resumeStage } from "@/lib/learner";
 import { CATEGORY_ACCENT } from "@/lib/styles";
 import { loadLearner } from "./data";
@@ -33,6 +33,11 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
   const due = payments.filter((r) => r.status === "pending");
   const resume = RESUME_COPY[resumeStage(record, catalog)];
   const v = user.verification.status;
+  // Courses picked in the course finder that are not approved yet.
+  const chosen = (record.interestedCourses ?? [])
+    .map((id) => courses.find((c) => c.id === id && !c.disabled))
+    .filter((c) => !!c && !user.assignedCourses.includes(c.id)) as typeof courses;
+  const requestedIds = new Set(user.requests.map((r) => r.courseId));
 
   const journey = [
     { label: "Account created", done: true },
@@ -55,6 +60,8 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
         ? { title: `Take the ${readyExams[0].title} exam`, text: "You have completed every course in this program. Pass the exam to earn your certificate.", href: `/certifications/${readyExams[0].id}/exam`, cta: "Start exam" }
         : current
           ? { title: current.pr.count ? `Continue ${current.c.title}` : `Start ${current.c.title}`, text: `Next lesson: ${current.pr.next.title}`, href: `/courses/${current.c.id}/learn/${current.pr.next.id}`, cta: current.pr.count ? "Resume lesson" : "Start course" }
+          : mine.length === 0 && chosen.some((c) => !requestedIds.has(c.id))
+            ? { title: "Enroll in the course you chose", text: chosen.find((c) => !requestedIds.has(c.id))!.title, href: `/courses/${chosen.find((c) => !requestedIds.has(c.id))!.id}`, cta: "View & enroll" }
           : mine.length === 0
             ? { title: user.requests.length ? "Your requests are under review" : "Request your first course", text: user.requests.length ? "Our team will approve your requested courses shortly. Explore more while you wait." : "Browse the catalog and request the courses you would like to take.", href: "/courses", cta: "Browse courses" }
             : { title: "All your courses are complete", text: "Request another course to keep growing your skills.", href: "/courses", cta: "Browse courses" };
@@ -125,6 +132,33 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/my-learnin
           })}
         </ol>
       </Panel>
+
+      {chosen.length > 0 && (
+        <Panel title="Courses you chose" action={<Link href="/find-my-course" className="text-sm font-semibold text-brand-ink hover:underline">Find more →</Link>}>
+          <p className="-mt-2 mb-4 text-sm text-slate-500">Picked for you in the course finder. Enroll in each one — our team then unlocks it.</p>
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {chosen.map((c) => {
+              const requested = requestedIds.has(c.id);
+              return (
+                <li key={c.id} className="flex flex-col rounded-xl p-4 ring-1 ring-slate-200">
+                  <span className={`h-1.5 w-12 rounded-full bg-gradient-to-r ${CATEGORY_ACCENT[c.category]}`} />
+                  <p className="mt-3 font-semibold leading-snug text-navy-900">{c.title}</p>
+                  <p className="mt-1 text-xs text-slate-500">{c.hours} hrs · {priceShort(c.price)}</p>
+                  <div className="mt-auto pt-4">
+                    {requested ? (
+                      <Pill tone="blue">Request sent — under review</Pill>
+                    ) : !user.profileComplete ? (
+                      <Link href={`/onboarding?next=${encodeURIComponent(`/courses/${c.id}`)}`} className="btn-secondary w-full py-2 text-sm">Complete profile to enroll</Link>
+                    ) : (
+                      <Link href={`/courses/${c.id}`} className="btn-primary w-full py-2 text-sm">{c.price > 0 ? "Enroll now" : "Request access"} <IconArrowRight className="h-4 w-4" /></Link>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Panel>
+      )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         <Panel title="Continue learning" action={<Link href="/my-learning/courses" className="text-sm font-semibold text-brand-ink hover:underline">All courses →</Link>}>

@@ -8,9 +8,12 @@ import Faq from "@/components/home/Faq";
 import CareerOutcomes from "@/components/home/CareerOutcomes";
 import TeacherWorries from "@/components/home/TeacherWorries";
 import BuiltForYou from "@/components/home/BuiltForYou";
+import ResearchEvidence from "@/components/home/ResearchEvidence";
+import FreeAiStrip from "@/components/home/FreeAiStrip";
 import TeacherPersonas from "@/components/home/TeacherPersonas";
 import FinalCta from "@/components/home/FinalCta";
-import { HomeCredentials, HomeExamEngine, HomeExplorer, HomeFinder, SectionSkeleton } from "@/components/home/HomeCatalog";
+import FinderCta from "@/components/home/FinderCta";
+import { HomeCredentials, HomeExamEngine, HomeExplorer, SectionSkeleton } from "@/components/home/HomeCatalog";
 
 /**
  * Story order for the target visitor (an experienced Indian school teacher, anxious about their career and
@@ -23,12 +26,12 @@ export default function Home() {
       <main className="flex-1">
         <Hero />
         <TeacherWorries />
+        <ResearchEvidence />
+        <FreeAiStrip />
         <BuiltForYou />
         <TeacherPersonas />
         <HowItWorks />
-        <Suspense fallback={<SectionSkeleton dark />}>
-          <HomeFinder />
-        </Suspense>
+        <FinderCta />
         <CareerOutcomes />
         <Suspense fallback={<SectionSkeleton />}>
           <HomeCredentials />

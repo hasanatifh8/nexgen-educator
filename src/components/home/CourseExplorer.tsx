@@ -99,7 +99,7 @@ export default function CourseExplorer({ courses, programs }: { courses: CourseO
                   <div className="mt-auto pt-5">
                     <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-navy-900"><IconBadge className="h-4 w-4 text-accent-strong" /> {p.title}</p>
                     <div className="grid grid-cols-2 gap-2">
-                      <EnquiryDialog courseId={c.id} courseTitle={c.title} className="btn-primary px-3" />
+                      <EnquiryDialog courses={[{ id: c.id, title: c.title }]} className="btn-primary px-3" />
                       <Link href={`/courses/${c.id}`} className="btn-secondary px-3">Syllabus <IconArrowRight className="h-4 w-4" /></Link>
                     </div>
                   </div>
@@ -111,7 +111,7 @@ export default function CourseExplorer({ courses, programs }: { courses: CourseO
 
         <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link href="/courses" className="btn-primary px-6 py-3">Browse all {listed.length} courses</Link>
-          <a href="#finder" className="btn-secondary px-6 py-3">Help me choose</a>
+          <Link href="/find-my-course" className="btn-secondary px-6 py-3">Help me choose</Link>
         </div>
       </div>
     </section>

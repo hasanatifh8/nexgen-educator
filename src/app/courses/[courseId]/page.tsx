@@ -243,7 +243,7 @@ async function CourseOverview({ params, searchParams }: { params: P["params"]; s
                 )}
                 <div className="mt-5 border-t border-slate-100 pt-4 text-center">
                   <p className="text-xs text-slate-500">Have questions about fees or eligibility?</p>
-                  <EnquiryDialog courseId={course.id} courseTitle={course.title} source="course-page" label="Talk to an advisor" className="mt-1 inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-brand-ink hover:underline" />
+                  <EnquiryDialog courses={[{ id: course.id, title: course.title }]} source="course-page" label="Talk to an advisor" className="mt-1 inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-brand-ink hover:underline" />
                 </div>
               </>
             )}

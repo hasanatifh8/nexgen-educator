@@ -3,7 +3,21 @@ import { Suspense } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import Footer from "@/components/Footer";
 import { IconBadge, IconBook, IconCheck, IconTimer } from "@/components/Icons";
-import RegisterForm from "./RegisterForm";
+import { priceShort } from "@/lib/catalog";
+import { getPublicCatalog } from "@/lib/catalogStore";
+import { parsePickedIds } from "@/lib/courseFinder";
+import RegisterForm, { type PickedCourse } from "./RegisterForm";
+
+/** Courses chosen in the course finder (?courses=a,b,c), resolved against what is on offer today. */
+async function Form({ searchParams }: { searchParams: PageProps<"/register">["searchParams"] }) {
+  const [sp, { courses }] = await Promise.all([searchParams, getPublicCatalog()]);
+  const ids = parsePickedIds(sp.courses);
+  const picks: PickedCourse[] = ids
+    .map((id) => courses.find((c) => c.id === id && !c.launch))
+    .filter((c) => !!c)
+    .map((c) => ({ id: c.id, title: c.title, meta: `${c.hours} hrs · ${priceShort(c.price)}` }));
+  return <RegisterForm picks={picks} />;
+}
 
 export const metadata: Metadata = {
   title: "Create your account",
@@ -16,7 +30,7 @@ const perks = [
   { icon: IconBadge, title: "A certificate schools trust", body: "Add it to your CV and LinkedIn. Any school can verify it." },
 ];
 
-export default function RegisterPage() {
+export default function RegisterPage({ searchParams }: PageProps<"/register">) {
   return (
     <>
       <SiteHeader />
@@ -58,7 +72,7 @@ export default function RegisterPage() {
             <p className="mt-2 text-slate-600">Registration is free. No payment needed, and it takes less than a minute.</p>
             <div className="mt-8">
               <Suspense fallback={<div className="h-[640px] animate-pulse rounded-xl bg-slate-100" />}>
-                <RegisterForm />
+                <Form searchParams={searchParams} />
               </Suspense>
             </div>
           </section>

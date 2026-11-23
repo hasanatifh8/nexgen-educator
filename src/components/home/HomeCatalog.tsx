@@ -2,7 +2,6 @@ import { connection } from "next/server";
 import { toCourseOutline, toPublicProgram } from "@/lib/catalog";
 import { getPublicCatalog } from "@/lib/catalogStore";
 import CourseExplorer from "./CourseExplorer";
-import CourseFinder from "./CourseFinder";
 import CredentialShowcase from "./CredentialShowcase";
 import Certificate from "../Certificate";
 import ExamEngine from "../ExamEngine";
@@ -13,12 +12,6 @@ export async function HomeExplorer() {
   await connection();
   const { courses, programs } = await getPublicCatalog();
   return <CourseExplorer courses={courses.map(toCourseOutline)} programs={programs.map(toPublicProgram)} />;
-}
-
-export async function HomeFinder() {
-  await connection();
-  const { courses, programs } = await getPublicCatalog();
-  return <CourseFinder courses={courses.map(toCourseOutline)} programs={programs.map(toPublicProgram)} />;
 }
 
 /** Program cards with curriculum path, competencies and a live certificate preview. */

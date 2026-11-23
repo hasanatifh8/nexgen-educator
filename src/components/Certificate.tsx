@@ -46,6 +46,9 @@ export default function Certificate({ data, settings, className = "" }: { data: 
           {t.text}
         </text>
       ))}
+      {layout.barcode && (
+        <path d={layout.barcode.bars.map((b) => `M${b.x} ${layout.barcode!.y}h${b.w}v${layout.barcode!.h}h-${b.w}z`).join("")} fill="#0f2a4a" shapeRendering="crispEdges" />
+      )}
       <rect x={QR_BOX.x - 1} y={QR_BOX.y - 1} width={QR_BOX.size + 2} height={QR_BOX.size + 2} rx="1.5" fill="#fff" stroke="#c9a227" strokeWidth="0.3" />
       {qr ? (
         <path d={qr} fill="#0f2a4a" shapeRendering="crispEdges" />

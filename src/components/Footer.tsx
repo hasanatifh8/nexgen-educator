@@ -5,7 +5,7 @@ import Link from "next/link";
 import Logo from "./Logo";
 
 const columns = [
-  { title: "Platform", links: [["Courses", "/courses"], ["How it works", "/#how-it-works"], ["Practice Tests", "/#practice-tests"], ["FAQ", "/#faq"]] },
+  { title: "Platform", links: [["Courses", "/courses"], ["Find my course", "/find-my-course"], ["Free AI courses", "/free-ai-learning"], ["How it works", "/#how-it-works"], ["Practice Tests", "/#practice-tests"], ["FAQ", "/#faq"]] },
   { title: "Solutions", links: [["Create Account", "/register"], ["For Institutions", "/#institutions"], ["Verify a Certificate", "/verify"], ["Partner Program", "#"]] },
   { title: "Company", links: [["About Us", "/about"], ["Careers", "#"], ["Blog", "#"], ["Contact", "#"]] },
 ];
@@ -48,6 +48,12 @@ export default function Footer() {
             professional development credentials. They do not replace government-issued teaching licenses or state/national
             certification requirements. Recognition of credentials and continuing education credits varies by institution and
             jurisdiction — please confirm with your school or licensing authority.
+          </p>
+          <p className="mt-3 text-xs leading-relaxed text-slate-500">
+            <span className="font-semibold text-slate-400">Trademarks:</span> Claude, ChatGPT, Gemini, Copilot, DeepSeek and other product names
+            and logos mentioned on this site are trademarks of their respective owners, protected under the Trade Marks Act, 1999 and the
+            Copyright Act, 1957. They are used only to identify those products; no affiliation or endorsement is implied.{" "}
+            <Link href="/free-ai-learning#trademarks" className="underline hover:text-white">Full notice</Link>.
           </p>
           <div className="mt-6 flex flex-col gap-4 text-xs sm:flex-row sm:items-center sm:justify-between">
             <p>© {year} NextGen Educator. All rights reserved.</p>

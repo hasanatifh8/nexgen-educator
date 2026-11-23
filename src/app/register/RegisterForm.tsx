@@ -10,6 +10,8 @@ import { PASSWORD_RULES, ROLES, WORK_STATUSES, isWorkStatus, readRegisterForm, v
 
 const initialState: RegisterState = { status: "idle" };
 
+export type PickedCourse = { id: string; title: string; meta: string };
+
 const inputBase =
   "mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-navy-900 outline-none transition placeholder:text-slate-400 focus:ring-4";
 const inputClass = (invalid: boolean) =>
@@ -29,7 +31,36 @@ function Field({ id, label, error, hint, children }: { id: string; label: ReactN
   );
 }
 
-export default function RegisterForm() {
+/** “You’re enrolling for”: the course finder’s picks, saved to the new account. Learners can untick any. */
+function PickedCourses({ picks, chosen, toggle }: { picks: PickedCourse[]; chosen: string[]; toggle: (id: string) => void }) {
+  return (
+    <fieldset className="rounded-2xl border border-brand/30 bg-gradient-to-br from-sky-50 to-white p-4 sm:p-5">
+      <legend className="sr-only">Courses you are enrolling for</legend>
+      <p className="flex items-center gap-2 text-xs font-bold tracking-wide text-brand-ink uppercase">
+        <IconCheck className="h-4 w-4" /> You’re enrolling for
+      </p>
+      <ul className="mt-3 space-y-2">
+        {picks.map((c, i) => (
+          <li key={c.id}>
+            <label className={`flex cursor-pointer items-start gap-3 rounded-xl bg-white p-3 ring-1 transition-colors ${chosen.includes(c.id) ? "ring-brand/40" : "opacity-60 ring-slate-200"}`}>
+              <input type="checkbox" name="interest" value={c.id} checked={chosen.includes(c.id)} onChange={() => toggle(c.id)} className="mt-1 h-4 w-4 accent-brand" />
+              <span className="min-w-0 flex-1">
+                {i === 0 && <span className="block text-[11px] font-bold tracking-wide text-accent-strong uppercase">Best match</span>}
+                <span className="block text-sm leading-snug font-semibold text-navy-900">{c.title}</span>
+                <span className="text-xs text-slate-500">{c.meta}</span>
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-slate-500">We’ll save these to your account. After you register and complete your profile, our team unlocks them for you.</p>
+    </fieldset>
+  );
+}
+
+export default function RegisterForm({ picks = [] }: { picks?: PickedCourse[] }) {
+  const [chosen, setChosen] = useState(picks.map((c) => c.id));
+  const toggle = (id: string) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   const [state, formAction, pending] = useActionState(register, initialState);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [seenState, setSeenState] = useState(state);
@@ -87,6 +118,7 @@ export default function RegisterForm() {
   return (
     <form action={formAction} onSubmit={onSubmit} onInput={clearError} noValidate className="space-y-5">
       <input type="hidden" name="next" value={next} />
+      {picks.length > 0 && <PickedCourses picks={picks} chosen={chosen} toggle={toggle} />}
       {state.status === "error" && state.message && (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700 ring-1 ring-red-200">
           {state.message}

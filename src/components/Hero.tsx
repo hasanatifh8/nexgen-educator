@@ -34,7 +34,7 @@ export default function Hero() {
             <Link href="/register" className="btn-primary px-6 py-3.5 text-base">
               Start learning free <IconArrowRight className="h-4 w-4" />
             </Link>
-            <a href="#finder" className="btn-ghost-dark px-6 py-3.5 text-base">Which course suits me?</a>
+            <Link href="/find-my-course" className="btn-ghost-dark px-6 py-3.5 text-base"><IconSparkles className="h-4 w-4 text-accent" /> Which course suits me?</Link>
           </div>
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-300">
             {["No technical skills needed", "Learn at your own pace", "Many courses free"].map((t) => (
