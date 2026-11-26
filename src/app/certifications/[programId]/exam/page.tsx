@@ -107,6 +107,7 @@ async function ExamContent({ params }: { params: Params }) {
             passPercent={program.exam.passPercent}
             questionCount={program.exam.questions.length}
             userName={`${user.firstName} ${user.lastName}`}
+            learnerId={user.id.slice(0, 8).toUpperCase()}
             settings={settings}
             orientation={!!program.orientation}
           />

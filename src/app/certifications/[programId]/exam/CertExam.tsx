@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Certificate from "@/components/Certificate";
 import { formatCertDate } from "@/lib/certificate/design";
 import CertificateDownload from "@/components/CertificateDownload";
 import { ScoreRing } from "@/components/ExamEngine";
-import { IconArrowRight, IconCheck, IconGrid, IconRefresh, IconTimer, IconX } from "@/components/Icons";
+import { IconArrowRight, IconCheck, IconGrid, IconRefresh, IconShield, IconTimer, IconX } from "@/components/Icons";
 import type { SiteSettings } from "@/lib/siteSettings";
 import type { EarnedCertificate } from "@/lib/users";
 import { EXAM_ATTEMPT_POLICY } from "@/lib/access";
@@ -22,6 +22,8 @@ type Props = {
   passPercent: number;
   questionCount: number;
   userName: string;
+  /** Short learner ID printed in the exam watermark next to the name. */
+  learnerId: string;
   settings: SiteSettings;
   /** The mandatory orientation quiz: no certificate; passing unlocks every certification exam. */
   orientation?: boolean;
@@ -32,7 +34,23 @@ type Phase = "intro" | "exam" | "results";
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const formatDate = formatCertDate;
 
-export default function CertExam({ programId, title, minutes, passPercent, questionCount, userName, settings, orientation = false }: Props) {
+const escapeXml = (v: string) => v.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/** Tiled, rotated watermark with the learner's name and ID, so a photo or screenshot of a question can be traced. */
+function watermarkImage(name: string, id: string) {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="340" height="190" viewBox="0 0 340 190">` +
+    `<g fill="#0f172a" font-family="ui-sans-serif,system-ui,sans-serif" font-weight="700" text-anchor="middle" transform="rotate(-20 170 95)">` +
+    `<text x="170" y="88" font-size="15">${escapeXml(name)}</text>` +
+    `<text x="170" y="108" font-size="11" letter-spacing="1">ID ${escapeXml(id)} · DO NOT COPY OR SHARE</text>` +
+    `</g></svg>`;
+  return `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+}
+
+/** Stops copying, cutting, dragging and the right-click menu on exam content. */
+const block = (e: { preventDefault: () => void }) => e.preventDefault();
+
+export default function CertExam({ programId, title, minutes, passPercent, questionCount, userName, learnerId, settings, orientation = false }: Props) {
   const certData = (c: EarnedCertificate) => ({
     name: c.holderName ?? userName,
     title: c.programTitle,
@@ -51,6 +69,8 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
   const [result, setResult] = useState<Extract<SubmitResult, { ok: true }> | null>(null);
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const watermark = useMemo(() => watermarkImage(userName, learnerId), [userName, learnerId]);
   const [pending, startTransition] = useTransition();
   const token = useRef("");
   const submitted = useRef(false);
@@ -135,9 +155,16 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
     document.body.style.overflow = "hidden";
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
+    // No copying or right-click anywhere on the page while the exam is open (covers Ctrl/Cmd+C too).
+    document.addEventListener("copy", block);
+    document.addEventListener("cut", block);
+    document.addEventListener("contextmenu", block);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("copy", block);
+      document.removeEventListener("cut", block);
+      document.removeEventListener("contextmenu", block);
     };
   }, [phase]);
 
@@ -178,7 +205,22 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
               <li key={t} className="flex gap-2"><IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-ink" /> {t}</li>
             ))}
           </ul>
-          <button onClick={begin} disabled={pending} className="btn-primary mt-8 w-full py-3.5 text-base">
+          <div role="note" className="mt-8 rounded-2xl border-2 border-red-300 bg-red-50 p-5 sm:p-6">
+            <p className="flex items-center gap-2 font-display text-lg font-bold text-red-800 sm:text-xl">
+              <IconShield className="h-6 w-6 shrink-0" /> Read before you start: zero tolerance for cheating
+            </p>
+            <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-red-900 sm:text-[15px]">
+              <li>Your <strong>name and learner ID are printed on every question</strong>. A question that is photographed, screenshotted or shared can be traced back to you.</li>
+              <li>Copying and right-click are turned off during the {orientation ? "quiz" : "exam"}.</li>
+              <li>Using <strong>ChatGPT, Gemini or any other AI tool</strong>, searching online, using your phone, or getting help from another person is cheating.</li>
+              <li>Anyone found cheating will be <strong>permanently banned</strong> from NextGen Educator, and any certificate they hold will be cancelled.</li>
+            </ul>
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-white p-3.5 text-sm font-semibold text-navy-900 ring-1 ring-red-200">
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-red-600" />
+              I understand. I will answer on my own, without AI tools or any outside help.
+            </label>
+          </div>
+          <button onClick={begin} disabled={pending || !agreed} className="btn-primary mt-6 w-full py-3.5 text-base">
             {pending ? (orientation ? "Preparing quiz…" : "Preparing exam…") : <>{orientation ? "Start the quiz" : "Start Exam"} <IconArrowRight className="h-4 w-4" /></>}
           </button>
         </div>
@@ -224,7 +266,8 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
             </header>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain">
-              <div key={q.id} className="animate-fade-up mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+              <div className="relative mx-auto max-w-3xl select-none" onCopy={block} onCut={block} onContextMenu={block} onDragStart={block}>
+              <div key={q.id} className="animate-fade-up px-4 py-6 sm:px-6 sm:py-8">
                 {q.scenario && (
                   <p className="mb-5 rounded-xl border-l-4 border-brand bg-sky-50 px-4 py-3 text-[15px] leading-relaxed text-slate-700">
                     <span className="font-semibold text-navy-900">Scenario: </span>{q.scenario}
@@ -261,6 +304,8 @@ export default function CertExam({ programId, title, minutes, passPercent, quest
                     You have {questions.length - answered} unanswered question{questions.length - answered === 1 ? "" : "s"}. Unanswered questions score zero — go back, or select “Submit anyway”.
                   </p>
                 )}
+              </div>
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 opacity-[0.12]" style={{ backgroundImage: watermark }} />
               </div>
             </div>
 

@@ -27,7 +27,7 @@ async function Users({ searchParams }: { searchParams: PageProps<"/admin/users">
   };
   const shown = learners
     .filter((u) => filter === "review" ? u.profile && u.verification.status === "pending" : filter === "requests" ? u.requests.length > 0 : filter === "incomplete" ? !u.profile : true)
-    .filter((u) => !q || `${u.firstName} ${u.lastName} ${u.email} ${u.profile?.phone ?? ""}`.toLowerCase().includes(q));
+    .filter((u) => !q || `${u.firstName} ${u.lastName} ${u.email} ${u.profile?.phone ?? ""} ${u.id}`.toLowerCase().includes(q));
 
   return (
     <>
@@ -44,7 +44,7 @@ async function Users({ searchParams }: { searchParams: PageProps<"/admin/users">
         </nav>
         <form className="flex gap-2">
           <input type="hidden" name="filter" value={filter} />
-          <input name="q" defaultValue={q} placeholder="Search name, email, phone" className="w-64 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm outline-none focus:border-brand focus:ring-4 focus:ring-sky-100" />
+          <input name="q" defaultValue={q} placeholder="Search name, email, phone, ID" className="w-64 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm outline-none focus:border-brand focus:ring-4 focus:ring-sky-100" />
           <button className="btn-secondary py-2">Search</button>
         </form>
       </div>
